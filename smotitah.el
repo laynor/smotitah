@@ -240,9 +240,9 @@ startup, and is not meant to be called directly by the user."
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm-create-directories-if-needed ()
-  (ignore-errors (make-directory (concat sm-profiles-dir))
-                 (make-directory (concat sm-modules-dir))
-                 (make-directory (concat sm-packages-dir)))
+  (ignore-errors (make-directory sm-profiles-dir)
+                 (make-directory sm-modules-dir)
+                 (make-directory sm-packages-dir))
   (assert (every 'file-exists-p (list sm-profiles-dir sm-modules-dir sm-packages-dir))
           nil "smotitah: Cannot create profiles, modules, packages directories in %s"
           user-emacs-directory))
