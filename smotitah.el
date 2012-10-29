@@ -144,6 +144,7 @@ startup, and is not meant to be called directly by the user."
 				  stage)))
 
 (defun sm-require-modules (&rest module-names)
+  "Add a module dependency. This is meant to be used in a profile file."
   (setf sm-active-modules (append sm-active-modules module-names)))
 
 ;;;; -------------------------------------- Modules --------------------------------------
