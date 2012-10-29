@@ -1,42 +1,66 @@
 ;; Super-modular
 ;; Probably a preloading of certain modules is necessary for some profiles
 ;; consider giving a hook for module loading
+
 (require 'cl)
 
 ;;;; ------------------------------------- Variables -------------------------------------
 
-(defvar sm-profile nil)
+(defvar sm-profile nil
+  "The name of the currently loaded profile")
 
 (defvar sm-unmanaged-profile nil
   "If this is set to T, just load the profile file")
 
-(defvar sm-profile-functions-format "sm-profile-%s-%s")
+(defvar sm-profile-functions-format "sm-profile-%s-%s"
+  "Format string used to calculate the names of the init and post functions for a profile.
+  - init function: sm-profile-<profile-name>-init
+  - post function: sm-profile-<profile-name>-post")
 
-(defvar sm-active-modules nil)
+(defvar sm-active-modules nil
+  "List of the modules to be activated by the profile.")
 
-(defvar sm-module-table (make-hash-table :test 'equal))
+(defvar sm-module-table (make-hash-table :test 'equal)
+  "Table of loaded modules. Each module is represented as a property list.")
 
-(defvar  sm-module-functions-format "sm-module-%s-%s")
+(defvar  sm-module-functions-format "sm-module-%s-%s"
+  "Format string used to calculate the names of the init and post functions for a module.
+  - init function: sm-profile-<module name>-init
+  - post function: sm-profile-<module name>-post")
 
-(defvar sm-profile-module-integration-file-name-format
-  "%s-%s-%s.el")
+(defvar sm-profile-module-integration-file-name-format "%s-%s-%s.el"
+  "Format string used to calculate the name of the integration
+  files relative to a given module and profile.")
 
-(defvar sm-supported-package-managers '("el-get" "package"))
+(defvar sm-supported-package-managers '("el-get" "package")
+  "Supported package managers.")
 
-(defvar sm-profiles-dir (concat user-emacs-directory "profiles/"))
-(defvar sm-modules-dir (concat user-emacs-directory "modules/"))
-(defvar sm-packages-dir (concat user-emacs-directory "packages/"))
-(defvar sm-directory (filename-directory load-file-name))
-(defvar sm-base-profile-file-name (concat user-emacs-directory "sm-base-profile.el"))
+(defvar sm-profiles-dir (concat user-emacs-directory "profiles/")
+  "Profiles directory.")
+
+(defvar sm-modules-dir (concat user-emacs-directory "modules/")
+  "Modules directory.")
+
+(defvar sm-packages-dir (concat user-emacs-directory "packages/")
+  "Packages directory")
+
+(defvar sm-directory (file-name-directory load-file-name)
+  "Smotitah installation directory.")
+
+(defvar sm-base-profile-file-name (concat sm-profiles-dir "sm-base-profile.el")
+  "Base profile file name.")
 
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
 (defun sm-load-file-if-exists (filename)
+  "Loads a file if exists."
   (when (file-exists-p filename)
     (load filename)))
 
 (defun sm-as-string (obj)
+  "Converts a symbol or a keyword into a string, or returns OBJ
+if it is a string"
   (etypecase obj
     (string obj)
     (symbol (let ((name (symbol-name obj)))
@@ -45,6 +69,8 @@
 		name)))))
 
 (defun sm-as-symbol (obj)
+  "Converts a string to a symbol, or returns OBJ if ir is a
+symbol."
   (etypecase obj
     (string (intern obj))
     (symbol obj)))
@@ -53,15 +79,20 @@
 ;;;; --------------------------------- Name -> Filename ----------------------------------
 
 (defun sm-profile-filename (profile-name)
+  "Returns the file path for a profile named PROFILE-NAME."
   (concat sm-profiles-dir (sm-as-string profile-name) ".el"))
 
 (defun sm-module-filename (module-name)
+  "Returns the file path for a module named MODULE-NAME."
   (concat sm-modules-dir (sm-as-string  module-name) ".el"))
 
 (defun sm-package-filename (package-name)
+  "Returns the file path for a package named PACKAGE-NAME."
   (concat sm-packages-dir "sm-package-" (sm-as-string package-name) ".el"))
 
 (defun sm-module-package-integration-file (package-name module-name)
+  "Returns the file path for the integration file for a package
+named PACKAGE-NAME in a module named MODULE-NAME."
   (format "%s/%s/%s-integration.el"
           sm-modules-dir
 	  (sm-as-string module-name)
@@ -71,16 +102,22 @@
 ;;;; -------------------------------------- Profile --------------------------------------
 
 (defun sm-profile-init-fn (profile-name)
+  "Returns a symbol whose name is the name of the intialiation
+function for a profile named PROFILE-NAME."
   (intern (format sm-profile-functions-format profile-name "init")))
 
 (defun sm-profile-post-fn (profile-name)
+  "Returns a symbol whose name is the name of the post-module-loading
+function for a profile named PROFILE-NAME."
   (intern (format sm-profile-functions-format profile-name "post")))
 
 (defun sm-load-profile (profile-name)
   "Loads the profile. This function is part of the framework
 startup, and is not meant to be called directly by the user."
+  ;; Use the profile file as custom file
   (setq custom-file (sm-profile-filename profile-name))
-  (load "sm-base-profile.el")
+  ;; Load the base profile
+  (load sm-base-profile-file-name)
   (load (sm-profile-filename profile-name))
   (unless sm-unmanaged-profile
     (condition-case nil
@@ -205,14 +242,15 @@ startup, and is not meant to be called directly by the user."
           nil "smotitah: Cannot create profiles, modules, packages directories in %s"
           user-emacs-directory))
 
-(defun sm-create-base-profile-file ()
+(defun sm-create-base-profile-file-if-needed ()
   (unless (file-exists-p sm-base-profile-file-name)
-    (copy-file (concat sm-directory "/sm-base-profile-template.el")
+    (copy-file (concat sm-directory "sm-base-profile-template.el")
                sm-base-profile-file-name)))
 
 (defun sm-initialize ()
   (interactive)
   (sm-create-directories-if-needed)
+  (sm-create-base-profile-file-if-needed)
   (setq sm-profile (getenv "EMACS_PROFILE"))
   (unless sm-profile
     (setq sm-profile (sm-select-profile-interactively)))
@@ -228,3 +266,5 @@ startup, and is not meant to be called directly by the user."
 ;; (defun sm-integrate-module (profile-name module-name)
 ;;   (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t)))
 ;;                  (module-name
+
+(provide 'smotitah)
