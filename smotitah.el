@@ -136,6 +136,8 @@ startup, and is not meant to be called directly by the user."
   (mapcar 'file-name-sans-extension (directory-files sm-profiles-dir nil ".*.el")))
 
 (defun sm-profile-integrate-module (stage module-name)
+  "Loads the integration file for the module named MODULE-NAME
+  for the current profile, if found."
   (sm-load-file-if-exists (format sm-profile-module-integration-file-name-format
 				  sm-profile
 				  module-name
