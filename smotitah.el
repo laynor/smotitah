@@ -84,7 +84,7 @@ symbol."
 
 (defun sm-module-filename (module-name)
   "Returns the file path for a module named MODULE-NAME."
-  (concat sm-modules-dir (sm-as-string  module-name) ".el"))
+  (concat sm-modules-dir "sm-module-" (sm-as-string  module-name) ".el"))
 
 (defun sm-package-filename (package-name)
   "Returns the file path for a package named PACKAGE-NAME."
@@ -97,6 +97,18 @@ named PACKAGE-NAME in a module named MODULE-NAME."
           sm-modules-dir
 	  (sm-as-string module-name)
           (sm-as-string package-name)))
+
+(defun sm-profile-module-integration-file (profile-name module-name stage)
+  "Returns the file path for the integration file that integrates
+the module named MODULE-NAME in the profile named
+PROFILE-NAME. STAGE can be either :init, for scripts to be loaded
+before loading the module, or :post, for scripts to be loaded
+after loading the module."
+  (concat sm-profiles-dir profile-name "/" (format sm-profile-module-integration-file-name-format
+                                                   (sm-as-string profile-name)
+                                                   (sm-as-string module-name)
+                                                   (sm-as-string stage))))
+                                                   
 
 
 ;;;; -------------------------------------- Profile --------------------------------------
@@ -144,10 +156,9 @@ startup, and is not meant to be called directly by the user."
 (defun sm-profile-integrate-module (stage module-name)
   "Loads the integration file for the module named MODULE-NAME
   for the current profile, if found."
-  (sm-load-file-if-exists (format sm-profile-module-integration-file-name-format
-				  sm-profile
-				  module-name
-				  stage)))
+  (sm-load-file-if-exists (sm-profile-module-integration-file sm-profile
+                                                              module-name
+                                                              stage)))
 
 (defun sm-require-modules (&rest module-names)
   "Add a module dependency. This is meant to be used in a profile file."
@@ -212,7 +223,9 @@ named PACKAGE-NAME in the module named MODULE-NAME."
 
 (defun sm-module-list ()
   "Returns the list of modules in .emacs.d/modules"
-  (mapcar 'file-name-sans-extension (directory-files sm-modules-dir nil ".*.el")))
+  (mapcar (lambda (module-file)
+            (substring (file-name-sans-extension module-file) (length "sm-module-")))
+          (directory-files sm-modules-dir nil ".*.el")))
 
 
 ;;;; ------------------------------------- Packages --------------------------------------
@@ -308,5 +321,18 @@ if not present."
 
 ;;;; ----------------------------------- User commands -----------------------------------
 
+(defun sm-integrate-module (profile-name module-name)
+  (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t sm-profile))
+                     (mname (ido-completing-read "Integrate module: " (sm-module-list) nil nil)))
+                 (list pname mname)))
+  (let ((integration-init-filename (sm-profile-module-integration-file profile-name module-name :init))
+        (integration-post-filename (sm-profile-module-integration-file profile-name module-name :post)))
+    (find-file integration-post-filename)
+    (find-file integration-init-filename)))
+
+(defun sm-integrate-package (module-name package-name)
+  (interactive (let ((mname (ido-completing-read "Integrate in profile: " (sm-module-list) nil t))
+                     (pname (ido-completing-read "Integrate package: " (sm-module-list) nil nil)))
+                 (list pname mname)))
 
 (provide 'smotitah)
