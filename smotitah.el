@@ -118,7 +118,9 @@ startup, and is not meant to be called directly by the user."
   (setq custom-file (sm-profile-filename profile-name))
   ;; Load the base profile
   (load sm-base-profile-file-name)
-  (load (sm-profile-filename profile-name))
+  ;; Load profile file
+  (unless (equal (sm-profile-filename profile-name) sm-base-profile-file-name)
+    (load (sm-profile-filename profile-name)))
   (unless sm-unmanaged-profile
     (condition-case nil
 	(funcall (sm-profile-init-fn profile-name))
