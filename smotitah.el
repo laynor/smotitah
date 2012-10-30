@@ -284,6 +284,10 @@ present."
   (sm-load-file-if-exists
    package-file-name))
 
+(defun sm-package-list ()
+  (mapcar (lambda (module-file)
+            (substring (file-name-sans-extension module-file) (length "sm-module-")))
+          (directory-files sm-modules-dir nil ".*.el")))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm-create-directories-if-needed ()
@@ -322,6 +326,8 @@ if not present."
 ;;;; ----------------------------------- User commands -----------------------------------
 
 (defun sm-integrate-module (profile-name module-name)
+  "Opens the integration files that integrate the module named
+MODULE-NAME in the profile named PROFILE-NAME."
   (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t sm-profile))
                      (mname (ido-completing-read "Integrate module: " (sm-module-list) nil nil)))
                  (list pname mname)))
@@ -331,8 +337,27 @@ if not present."
     (find-file integration-init-filename)))
 
 (defun sm-integrate-package (module-name package-name)
+  "Opens the integration files that integrate the package named
+PACKAGE-NAME in the module named MODULE-NAME."
   (interactive (let ((mname (ido-completing-read "Integrate in profile: " (sm-module-list) nil t))
-                     (pname (ido-completing-read "Integrate package: " (sm-module-list) nil nil)))
+                     (pname (ido-completing-read "Integrate package: " (sm-package-list) nil nil)))
                  (list pname mname)))
+  (let ((integration-filename (sm-module-package-integration-file package-name module-name)))
+    (find-file integration-filename)))
+
+(defun sm-edit-profile (profile-name)
+  "Opens the profile file for the profile named PROFILE-NAME."
+  (interactive (list (ido-completing-read "Edit Profile: " (sm-profile-list) nil nil sm-profile)))
+  (find-file (sm-profile-filename profile-name)))
+
+(defun sm-edit-module (module-name)
+  "Opens the module file for the module named MODULE-NAME."
+  (interactive (list (ido-completing-read "Edit Module: " (sm-module-list))))
+  (find-file (sm-module-filename module-name)))
+
+(defun sm-edit-package (package-name)
+  "Opens the package file for the package named PACKAGE-NAME."
+  (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
+  (find-file (sm-package-filename package-name)))
 
 (provide 'smotitah)
