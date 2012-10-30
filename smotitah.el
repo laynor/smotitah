@@ -58,6 +58,11 @@
   (when (file-exists-p filename)
     (load filename)))
 
+(defun sm-require-if-file-exists (feature filename)
+  "Requires a feature if filename exists."
+  (when (file-exists-p filename)
+    (require feature filename)))
+
 (defun sm-as-string (obj)
   "Converts a symbol or a keyword into a string, or returns OBJ
 if it is a string"
@@ -108,8 +113,30 @@ after loading the module."
                                                    (sm-as-string profile-name)
                                                    (sm-as-string module-name)
                                                    (sm-as-string stage))))
-                                                   
 
+;;;; ------------------------------- Features for require --------------------------------
+
+(defun sm-module-feature (module-name)
+  "Returns a symbol to be used as a feature when requiring
+a module named MODULE-NAME."
+  (intern (concat "sm-module-" (sm-as-string module-name))))
+
+(defun sm-profile-module-integration-feature (profile-name module-name stage)
+  "Returns a symbol to be used as a feature when requiring a
+module integration file."
+  (intern (format "sm-pmi-%s-%s-%s-integration"
+                  (sm-as-string profile-name)
+                  (sm-as-string module-name) (sm-as-string stage))))
+
+(defun sm-package-feature (package-name)
+  "Returns a symbol that will be used as feature when requiring a
+package named PACKAGE-NAME."
+  (intern (concat "sm-package" (sm-as-string package-name))))
+
+(defun sm-module-package-integration-feature (module-name package-name)
+  "Returns a symbol to be used as a feature when requiring a
+package integration file."
+  (intern (format "sm-mpi-%s-%s-integration" (sm-as-string module-name) (sm-as-string package-name))))
 
 ;;;; -------------------------------------- Profile --------------------------------------
 
@@ -156,7 +183,8 @@ startup, and is not meant to be called directly by the user."
 (defun sm-profile-integrate-module (stage module-name)
   "Loads the integration file for the module named MODULE-NAME
   for the current profile, if found."
-  (sm-load-file-if-exists (sm-profile-module-integration-file sm-profile
+  (sm-require-if-file-exists (sm-profile-module-integration-feature sm-profile module-name stage)
+                             (sm-profile-module-integration-file sm-profile
                                                               module-name
                                                               stage)))
 
@@ -199,12 +227,17 @@ module named MODULE-NAME."
   "Returns a symbol named like the post-module-loading function
 of a module named MODULE-NAME."
   (intern (format sm-module-functions-format module-name "post")))
+                                                   
+(defun sm-require-module-base (module-name)
+  "Requires a module file. Not intended to be used directly."
+  (require (sm-module-feature module-name)
+           (sm-module-filename (sm-as-string module-name))))
 
 (defun sm-do-load-module (module-name)
   "Loads the module, the packages it depends on and the related
 integration scripts."
   (interactive "sModule: ")
-  (load (sm-module-filename module-name))
+  (sm-require-module-base (sm-module-filename module-name))
   (unless (sm-unmanaged-module-p module-name)
     (funcall (sm-module-init-fn module-name))
     (dolist (package-name (sm-module-packages module-name))
@@ -219,7 +252,8 @@ depends on."
 (defun sm-module-integrate-package (package-name module-name)
   "Loads the integration files needed to integrate the package
 named PACKAGE-NAME in the module named MODULE-NAME."
-  (sm-load-file-if-exists (sm-module-package-integration-file package-name module-name)))
+  (sm-require-if-file-exists (sm-module-package-integration-feature module-name package-name)
+                             (sm-module-package-integration-file package-name module-name)))
 
 (defun sm-module-list ()
   "Returns the list of modules in .emacs.d/modules"
@@ -259,7 +293,8 @@ it also loads the related integration scripts.  If user-managed-p
 is t, just load the package file found in .emacs.d/packages."
   (unless user-managed-p
     (sm-install-package-if-needed package-name))
-  (sm-load-package-file-if-exists (sm-package-filename package-name))
+  (sm-require-if-file-exists (sm-package-feature package-name)
+                             (sm-package-filename package-name))
   (when module-name
     (sm-module-integrate-package package-name module-name)))
 
@@ -279,10 +314,10 @@ present."
 	(el-get (el-get-install package-name))
 	(package (package-install package-name))))))
 
-(defun sm-load-package-file-if-exists (package-file-name)
-  "Loads a package file if present."
-  (sm-load-file-if-exists
-   package-file-name))
+;; (defun sm-load-package-file-if-exists (package-file-name)
+;;   "Loads a package file if present."
+;;   (sm-load-file-if-exists
+;;    package-file-name))
 
 (defun sm-package-list ()
   (mapcar (lambda (module-file)
@@ -359,5 +394,7 @@ PACKAGE-NAME in the module named MODULE-NAME."
   "Opens the package file for the package named PACKAGE-NAME."
   (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
   (find-file (sm-package-filename package-name)))
+
+
 
 (provide 'smotitah)
