@@ -227,13 +227,11 @@ startup, and is not meant to be called directly by the user."
   "Add a module dependency. This is meant to be used in a profile file."
   (setf sm-active-modules (append sm-active-modules module-names)))
 
-(defmacro* sm-profile-pre ((profile-name) &rest body)
-  (declare (indent 1))
+(defmacro* sm-profile-pre ((profile-name) &body body)
   `(defun ,(sm-profile-init-fn profile-name) ()
      ,@body))
 
-(defmacro* sm-profile-post ((profile-name) &rest body)
-  (declare (indent 1))
+(defmacro* sm-profile-post ((profile-name) &body body)
   `(defun ,(sm-profile-post-fn profile-name) ()
      ,@body))
 
@@ -345,13 +343,11 @@ of a module named MODULE-NAME."
             (substring (file-name-sans-extension module-file) (length "sm-module-")))
           (directory-files sm-modules-dir nil ".*.el")))
 
-(defmacro* sm-module-pre ((module-name) &rest body)
-  (declare (indent 1))
+(defmacro* sm-module-pre ((module-name) &body body)
   `(defun ,(sm-module-pre-fn module-name) ()
      ,@body))
 
-(defmacro* sm-module-post ((module-name) &rest body)
-  (declare (indent 1))
+(defmacro* sm-module-post ((module-name) &body body)
   `(defun ,(sm-module-post-fn module-name) ()
      ,@body))
 
