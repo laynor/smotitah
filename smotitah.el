@@ -45,6 +45,8 @@
 (defvar sm-packages-dir (concat user-emacs-directory "packages/")
   "Packages directory")
 
+(defvar sm-template-dir (concat sm-directory "templates/"))
+
 (defvar sm-directory (file-name-directory load-file-name)
   "Smotitah installation directory.")
 
@@ -57,6 +59,12 @@
   "Format string used to calculate the name of the integration
   files relative to a given module and profile.")
 
+
+;;; Template files
+(defvar sm-template-profile (concat sm-template-dir "sm-profile-template.el"))
+(defvar sm-template-module (concat sm-template-dir "sm-module-template.el"))
+(defvar sm-template-package (concat sm-template-dir "sm-package-template.el"))
+(defvar sm-template-module-integration (concat sm-template-dir "sm-integration-template.el"))
 
 ;;; Packages and package managers
 
@@ -204,6 +212,15 @@ startup, and is not meant to be called directly by the user."
   "Add a module dependency. This is meant to be used in a profile file."
   (setf sm-active-modules (append sm-active-modules module-names)))
 
+(defmacro sm-profile-pre ((profile-name) &rest body)
+  (declare (indent 1))
+  `(defun ,(sm-profile-init-fn profile-name) ()
+     ,@body))
+
+(defmacro sm-profile-post ((profile-name) &rest body)
+  (declare (indent 1))
+  `(defun ,(sm-profile-init-fn profile-name) ()
+     ,@body))
 
 ;;;; -------------------------------------- Modules --------------------------------------
 
@@ -374,33 +391,6 @@ user emacs dir if not present"
 
 ;;;; ----------------------------------- User commands -----------------------------------
 
-;;; TODO use templates
-(defun sm-integrate-module (profile-name module-name)
-  "Opens the integration files that integrate the module named
-MODULE-NAME in the profile named PROFILE-NAME."
-  (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t sm-profile))
-                     (mname (ido-completing-read "Integrate module: " (sm-module-list) nil nil)))
-                 (list pname mname)))
-  (let ((integration-pre-filename (sm-profile-module-integration-file profile-name module-name :pre))
-        (integration-post-filename (sm-profile-module-integration-file profile-name module-name :post)))
-    (find-file integration-post-filename)
-    (find-file integration-pre-filename)))
-
-(defun sm-edit-profile (profile-name)
-  "Opens the profile file for the profile named PROFILE-NAME."
-  (interactive (list (ido-completing-read "Edit Profile: " (sm-profile-list) nil nil sm-profile)))
-  (find-file (sm-profile-filename profile-name)))
-
-(defun sm-edit-module (module-name)
-  "Opens the module file for the module named MODULE-NAME."
-  (interactive (list (ido-completing-read "Edit Module: " (sm-module-list))))
-  (find-file (sm-module-filename module-name)))
-
-(defun sm-edit-package (package-name)
-  "Opens the package file for the package named PACKAGE-NAME."
-  (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
-  (find-file (sm-package-filename package-name)))
-
 (defun sm-fill-template-and-save (template-filename destination-file substitution-alist)
   (let ((buf (find-file-noselect template-filename)))
     (with-current-buffer buf
@@ -411,6 +401,49 @@ MODULE-NAME in the profile named PROFILE-NAME."
       (write-file destination-file))
     (kill-buffer buf))
   (find-file destination-file))
+
+;;; TODO use templates
+(defun sm-find-file-or-fill-template (filename template-filename substitutions)
+  (if (file-exists-p filename)
+      (find-file filename)
+    (sm-fill-template-and-save template-filename filename substitutions)))
+
+(defun sm-integrate-module (profile-name module-name)
+  "Opens the integration files that integrate the module named
+MODULE-NAME in the profile named PROFILE-NAME."
+  (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t sm-profile))
+                     (mname (ido-completing-read "Integrate module: " (sm-module-list) nil nil)))
+                 (list pname mname)))
+  (let ((integration-pre-filename (sm-profile-module-integration-file profile-name module-name :pre))
+        (integration-post-filename (sm-profile-module-integration-file profile-name module-name :post)))
+    (sm-find-file-or-fill-template integration-post-filename sm-template-module-integration
+                                   `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
+                                     ("STAGE" . "post")))
+    (sm-find-file-or-fill-template integration-pre-file
+                                   `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
+                                     ("STAGE" . "pre")))))
+                                   
+
+(defun sm-edit-profile (profile-name)
+  "Opens the profile file for the profile named PROFILE-NAME."
+  (interactive (list (ido-completing-read "Edit Profile: " (sm-profile-list) nil nil sm-profile)))
+  (sm-find-file-or-fill-template (sm-profile-filename profile-name)
+                                 sm-template-profile
+                                 `(("PROFILE-NAME" . ,profile-name))))
+
+(defun sm-edit-module (module-name)
+  "Opens the module file for the module named MODULE-NAME."
+  (interactive (list (ido-completing-read "Edit Module: " (sm-module-list))))
+  (sm-find-file-or-fill-template (sm-module-filename module-name)
+                                 sm-template-module
+                                 `(("MODULE-NAME" . ,module-name))))
+
+(defun sm-edit-package (package-name)
+  "Opens the package file for the package named PACKAGE-NAME."
+  (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
+  (sm-find-file-or-fill-template (sm-package-filename package-name)
+                                 sm-template-package
+                                 `(("PACKAGE-NAME" . ,package-name))))
 
     
                  
