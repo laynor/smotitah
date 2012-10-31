@@ -8,6 +8,9 @@
 
 ;;; Profile loading related variables
 
+(defvar sm-debug nil
+  "Whether or not to write debug messages")
+
 (defvar sm-profile nil
   "The name of the currently loaded profile")
 
@@ -34,7 +37,7 @@
   - post function: sm-module-<module name>-post")
 
 
-;;; Directories 
+;;; Directories
 
 (defvar sm-profiles-dir (concat user-emacs-directory "profiles/")
   "Profiles directory.")
@@ -45,12 +48,12 @@
 (defvar sm-packages-dir (concat user-emacs-directory "packages/")
   "Packages directory")
 
-(defvar sm-template-dir (concat sm-directory "templates/"))
-
 (defvar sm-directory (file-name-directory load-file-name)
   "Smotitah installation directory.")
 
-;;; File names
+(defvar sm-template-dir (concat sm-directory "templates/"))
+
+
 
 (defvar sm-base-module-file-name (concat sm-modules-dir "sm-module-base.el")
   "Base profile file name.")
@@ -78,6 +81,10 @@
 (defvar sm-package-installation-function-alist '((el-get . el-get-install) (package . package-install)))
 
 ;;;; ------------------------------------- Utilities -------------------------------------
+
+(defun sm-debug-msg (format-string &rest args)
+  (when sm-debug 
+    (apply 'message (concat "smotitah: " format-string) args)))
 
 (defun sm-load-file-if-exists (filename)
   "Loads a file if exists."
@@ -149,7 +156,7 @@ module integration file."
 (defun sm-package-feature (package-name)
   "Returns a symbol that will be used as feature when requiring a
 package named PACKAGE-NAME."
-  (intern (concat "sm-package" (sm-as-string package-name))))
+  (intern (concat "sm-package-" (sm-as-string package-name))))
 
 (defmacro sm-provide (kind name &optional <- module-name)
   (assert (ecase kind
@@ -157,7 +164,7 @@ package named PACKAGE-NAME."
             ((:module :package) (every 'null (list <- module-name))))
           nil
           "Wrong sm-provide statement")
-  `(provide 
+  `(provide
     ',(case kind
         (:module (sm-module-feature name))
         (:package (sm-package-feature name))
@@ -181,20 +188,27 @@ function for a profile named PROFILE-NAME."
   "Loads the profile. This function is part of the framework
 startup, and is not meant to be called directly by the user."
   ;; Load profile file
+  (sm-debug-msg "Loading profile file: %s" profile-name)
   (load (sm-profile-filename profile-name))
   ;; Do not do anything if the profile is unmanaged
   (unless sm-unmanaged-profile
     ;; Try to call the profile's init function
     (condition-case nil
-	(funcall (sm-profile-init-fn profile-name))
+	(progn 
+	  (sm-debug-msg "Calling profile init fn")
+	  (funcall (sm-profile-init-fn profile-name)))
       (error (message "smotitah: no profile initialization function")))
     ;; Load the modules
+    (sm-debug-msg "Loading modules")
     (dolist (module sm-active-modules)
       (sm-load-module module))
     ;; Try to call the profile's post module loading function
     (condition-case nil
-	(funcall (sm-profile-post-fn profile-name))
-      (error (message "smotitah: no profile post-module-loading function")))))
+	(progn
+	  (sm-debug-msg "Calling profile post fn")
+	  (funcall (sm-profile-post-fn profile-name)))
+      (error (message "smotitah: no profile post-module-loading function"))))
+  (sm-debug-msg "Profile loading: end."))
 
 (defun sm-profile-list ()
   "Returns a list of profile files."
@@ -212,24 +226,25 @@ startup, and is not meant to be called directly by the user."
   "Add a module dependency. This is meant to be used in a profile file."
   (setf sm-active-modules (append sm-active-modules module-names)))
 
-(defmacro sm-profile-pre ((profile-name) &rest body)
+(defmacro* sm-profile-pre ((profile-name) &rest body)
   (declare (indent 1))
   `(defun ,(sm-profile-init-fn profile-name) ()
      ,@body))
 
-(defmacro sm-profile-post ((profile-name) &rest body)
+(defmacro* sm-profile-post ((profile-name) &rest body)
   (declare (indent 1))
-  `(defun ,(sm-profile-init-fn profile-name) ()
+  `(defun ,(sm-profile-post-fn profile-name) ()
      ,@body))
 
 ;;;; -------------------------------------- Modules --------------------------------------
 
-(defun* sm-module (module-name &key unmanaged-p require-packages)
+(defmacro* sm-module (module-name &key unmanaged-p require-packages)
   "Declares a module. This is meant to be called in the module file,
 which must be located in your .emacs.d/modules directory, and must be named
 sm-module-MODULE-NAME.el."
-  (setf (sm-unmanaged-module-p module-name) unmanaged-p)
-  (setf (sm-module-packages module-name) require-packages))
+  `(progn
+     (setf (sm-unmanaged-module-p ,module-name) ,unmanaged-p)
+     (setf (sm-module-packages ,module-name) ,require-packages)))
 
 (defmacro sm-get-module (module-name)
   "Returns the property list for the module named MODULE-NAME,
@@ -238,11 +253,17 @@ which must be loaded."
 
 (defmacro sm-unmanaged-module-p (module-name)
   "Returns true if the module is unmanaged."
-  `(getf (sm-get-module ,module-name) 'unmanaged-p))
+  `(getf (sm-get-module ,(sm-as-string module-name)) 'unmanaged-p))
+
+(defmacro sm-module-packages (module-name)
+  "Returns the list of packages the module named MODULE-NAME
+depends on."
+  `(getf (sm-get-module ,(sm-as-string module-name)) :packages))
 
 (defun  sm-load-module (module-name)
   "Loads the module named MODULE-NAME."
   (interactive "sModule: ")
+  (sm-debug-msg "Loading module %s" module-name)
   (sm-profile-integrate-module :pre module-name)
   (sm-do-load-module module-name)
   (sm-profile-integrate-module :post module-name))
@@ -256,7 +277,7 @@ module named MODULE-NAME."
   "Returns a symbol named like the post-module-loading function
 of a module named MODULE-NAME."
   (intern (format sm-module-functions-format module-name "post")))
-                                                   
+
 (defun sm-require-module-base (module-name)
   "Requires a module file. Not intended to be used directly."
   (require (sm-module-feature module-name)
@@ -273,23 +294,18 @@ integration scripts."
       (sm-package-initialize package-name module-name))
     (funcall (sm-module-post-fn module-name))))
 
-(defmacro sm-module-packages (module-name)
-  "Returns the list of packages the module named MODULE-NAME
-depends on."
-  `(getf (sm-get-module ,module-name) :packages))
-
 (defun sm-module-list ()
   "Returns the list of modules in .emacs.d/modules"
   (mapcar (lambda (module-file)
             (substring (file-name-sans-extension module-file) (length "sm-module-")))
           (directory-files sm-modules-dir nil ".*.el")))
 
-(defmacro sm-module-pre ((module-name) &rest body)
+(defmacro* sm-module-pre ((module-name) &rest body)
   (declare (indent 1))
   `(defun ,(sm-module-pre-fn module-name) ()
      ,@body))
 
-(defmacro sm-module-post ((module-name) &rest body)
+(defmacro* sm-module-post ((module-name) &rest body)
   (declare (indent 1))
   `(defun ,(sm-module-post-fn module-name) ()
      ,@body))
@@ -307,20 +323,22 @@ depends on."
   (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-installation-function-alist))
            package-name))
 
-(defun* sm-package (name &key package-manager unmanaged-p)
+(defmacro* sm-package (name &key package-manager unmanaged-p)
   "Declares a package named NAME. Only one of PACKAGE-MANAGER and UNMANAGED-P must be true.
 PACKAGE-MANAGER, if provided, must be one of the package managers
 supported by smotitah - see `sm-supported-package-managers'."
-  (assert (sm-xor package-manager unmanaged-p) nil
-          "Error in package '%s' declaration: one (and only one)
-          of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
-  (setf (sm-get-package name) (list :package name :package-manager package-manager :unmanaged-p unmanaged-p))
-  (unless (or unmanaged-p (sm-package-installed-p name))
-    (sm-package-install-with name package-manager)
-    (assert (sm-package-installed-p name) nil
-            "smotitah: Cannot install package %s with package manager %s."
-            name package-manager)))
-  
+  `(progn
+     (assert (sm-xor ,package-manager ,unmanaged-p) nil
+	     "Error in package '%s' declaration: one (and only one)
+              of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
+     (setf (sm-get-package ,(sm-as-string name)) (list :package ,(sm-as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p))
+     (unless (or ,unmanaged-p (sm-package-installed-p ,(sm-as-string name)))
+       (sm-package-install-with ,(sm-as-string name) ,package-manager)
+       (assert (sm-package-installed-p ,(sm-as-string name) nil
+	       "smotitah: Cannot install package %s with package manager %s."
+	       ,name ,package-manager)))))
+
+
 (defun sm-package-installed-packages ()
   "Returns the list of packages installed with package.el."
   (mapcar #'car package-alist))
@@ -344,7 +362,7 @@ any of the package managers listed in
 SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   (member (sm-as-symbol package-name) (sm-all-installed-packages)))
 
-(defun* sm-package-initialize (package-name) 
+(defun* sm-package-initialize (package-name)
   "Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
 it also loads the related integration scripts.  If user-managed-p
 is t, just load the package file found in .emacs.d/packages."
@@ -370,18 +388,25 @@ user emacs dir if not present"
 (defun sm-create-base-module-if-needed ()
   "Creates a stub for the profile-shared base module."
   (unless (file-exists-p sm-base-module-file-name)
-    (copy-file (concat sm-directory "sm-module-base-template.el")
+    (copy-file (concat sm-template-dir "sm-module-base-template.el")
                sm-base-module-file-name)))
 
 (defun sm-initialize ()
   "Initializes the smotitah configuration framework."
   (interactive)
-  (sm-create-base-module-if-needed)
-  (sm-create-directories-if-needed)
-  (setq sm-profile (getenv "EMACS_PROFILE"))
-  (unless sm-profile
-    (setq sm-profile (sm-select-profile-interactively)))
-  (sm-load-profile sm-profile))
+  (let ((profile-list (sm-profile-list)))
+    (sm-create-base-module-if-needed)
+    (sm-create-directories-if-needed)
+    (setq sm-profile (getenv "EMACS_PROFILE"))
+    (when (and (null sm-profile) profile-list)
+      (setq sm-profile (sm-select-profile-interactively)))
+    (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
+	   (let ((profile-name (read-from-minibuffer "Profile name: ")))
+	     (sm-find-file-or-fill-template (sm-profile-filename profile-name)
+					    sm-template-profile `(("PROFILE-NAME" . ,profile-name)))))
+      
+	  (sm-profile
+	    (sm-load-profile sm-profile)))))
 
 
 (defun sm-select-profile-interactively ()
@@ -400,6 +425,7 @@ user emacs dir if not present"
           (replace-match (cdr sub) t t)))
       (write-file destination-file))
     (kill-buffer buf))
+  (setq inhibit-splash-screen t)
   (find-file destination-file))
 
 ;;; TODO use templates
@@ -422,7 +448,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
     (sm-find-file-or-fill-template integration-pre-file
                                    `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
                                      ("STAGE" . "pre")))))
-                                   
+
 
 (defun sm-edit-profile (profile-name)
   "Opens the profile file for the profile named PROFILE-NAME."
@@ -445,6 +471,6 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                  sm-template-package
                                  `(("PACKAGE-NAME" . ,package-name))))
 
-    
-                 
+
+
 (provide 'smotitah)

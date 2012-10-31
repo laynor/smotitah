@@ -10,14 +10,14 @@
            :unmanaged-p nil)
 
 
-;;;; Remove these 2 functions if the module is unmanaged
-(defun sm-module-base-init ()
+;;;; Remove these 2 blocks if the module is unmanaged
+(sm-module-pre (base)
   ;; TODO Write the code that should be executed BEFORE the packages are initialized
   )
 
-(defun sm-module-base-post ()
+(defun sm-module (base)
   ;; TODO Write the code that should be executed AFTER the packages are initialized
   )
 
-(sm-provide :module "base")
+(sm-provide :module base)
 ;;;; End base module
