@@ -15,7 +15,7 @@
   ;; TODO Write the code that should be executed BEFORE the packages are initialized
   )
 
-(defun sm-module (base)
+(sm-module-post (base)
   ;; TODO Write the code that should be executed AFTER the packages are initialized
   )
 

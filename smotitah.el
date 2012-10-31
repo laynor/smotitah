@@ -3,7 +3,9 @@
 ;; consider giving a hook for module loading
 
 (require 'cl)
-
+(package-initialize)
+(when (featurep 'el-get)
+  (el-get 'sync))
 ;;;; ------------------------------------- Variables -------------------------------------
 
 ;;; Profile loading related variables
@@ -200,8 +202,7 @@ startup, and is not meant to be called directly by the user."
       (error (message "smotitah: no profile initialization function")))
     ;; Load the modules
     (sm-debug-msg "Loading modules")
-    (dolist (module sm-active-modules)
-      (sm-load-module module))
+    (sm-activate-modules sm-active-modules)
     ;; Try to call the profile's post module loading function
     (condition-case nil
 	(progn
@@ -242,9 +243,11 @@ startup, and is not meant to be called directly by the user."
   "Declares a module. This is meant to be called in the module file,
 which must be located in your .emacs.d/modules directory, and must be named
 sm-module-MODULE-NAME.el."
-  `(progn
-     (setf (sm-unmanaged-module-p ,module-name) ,unmanaged-p)
-     (setf (sm-module-packages ,module-name) ,require-packages)))
+  (let ((mname (sm-as-string module-name)))
+    `(progn
+       (setf (sm-get-module ,mname) nil)
+       (setf (sm-unmanaged-module-p ,mname) ,unmanaged-p)
+       (setf (sm-module-packages ,mname) ,require-packages))))
 
 (defmacro sm-get-module (module-name)
   "Returns the property list for the module named MODULE-NAME,
@@ -253,20 +256,62 @@ which must be loaded."
 
 (defmacro sm-unmanaged-module-p (module-name)
   "Returns true if the module is unmanaged."
-  `(getf (sm-get-module ,(sm-as-string module-name)) 'unmanaged-p))
+  `(getf (sm-get-module ,module-name) :unmanaged-p))
 
 (defmacro sm-module-packages (module-name)
   "Returns the list of packages the module named MODULE-NAME
 depends on."
-  `(getf (sm-get-module ,(sm-as-string module-name)) :packages))
+  `(getf (sm-get-module ,module-name) :packages))
 
-(defun  sm-load-module (module-name)
-  "Loads the module named MODULE-NAME."
-  (interactive "sModule: ")
-  (sm-debug-msg "Loading module %s" module-name)
-  (sm-profile-integrate-module :pre module-name)
-  (sm-do-load-module module-name)
-  (sm-profile-integrate-module :post module-name))
+(defun sm-activate-modules (modules)
+  (sm-debug-msg "Initializing modules %S" modules)
+  (sm-initialize-modules modules)
+  (sm-debug-msg "Running integration scripts, stage: pre.")
+  (sm-integrate-modules modules :pre)
+  (sm-debug-msg "Calling modules pre fns.")
+  (sm-call-modules-fn modules :pre)
+  (sm-debug-msg "Requiring packages")
+  (dolist (m modules)
+    (sm-require-module-packages m))
+  (sm-debug-msg "Calling modules post fns.")
+  (sm-call-modules-fn modules :post)
+  (sm-debug-msg "Running integration scripts, stage: post.")
+  (sm-integrate-modules modules :post))
+
+(defun sm-initialize-modules (modules)
+  (dolist (m modules)
+    (sm-debug-msg "Requiring module file for %s" m)
+    (sm-require-module-base m)
+    (sm-debug-msg "   Module %S: %S" m (sm-get-module m))))
+
+(defun sm-integrate-modules (modules stage)
+  (dolist (m modules)
+    (unless (sm-unmanaged-module-p m)
+      (sm-debug-msg "Requiring integration for %s, %s" m stage)
+      (sm-profile-integrate-module stage m))))
+
+(defun sm-call-modules-fn (modules stage)
+  (dolist (m modules)
+    (unless (sm-unmanaged-module-p m)
+      (sm-debug-msg "Calling %s's %s fn." m stage)
+      (funcall (case stage
+		 (:pre (sm-module-pre-fn m))
+		 (:post (sm-module-post-fn m)))))))
+
+(defun sm-require-module-packages (module)
+  (unless (sm-unmanaged-module-p module)
+    (let ((packages (sm-module-packages module)))
+      (sm-debug-msg "Requiring packages for %S: %S" module (sm-module-packages module))
+      (dolist (p packages)
+	(sm-package-initialize p)))))
+   
+  
+;; (defun sm-load-module (module-name)
+;;   "Loads the module named MODULE-NAME."
+;;   (interactive "sModule: ")
+;;   (sm-profile-integrate-module :pre module-name)
+;;   (sm-do-load-module module-name)
+;;   (sm-profile-integrate-module :post module-name))
 
 (defun sm-module-pre-fn (module-name)
   "Returns a symbol named like the initialization function of a
@@ -283,16 +328,16 @@ of a module named MODULE-NAME."
   (require (sm-module-feature module-name)
            (sm-module-filename (sm-as-string module-name))))
 
-(defun sm-do-load-module (module-name)
-  "Loads the module, the packages it depends on and the related
-integration scripts."
-  (interactive "sModule: ")
-  (sm-require-module-base (sm-module-filename module-name))
-  (unless (sm-unmanaged-module-p module-name)
-    (funcall (sm-module-pre-fn module-name))
-    (dolist (package-name (sm-module-packages module-name))
-      (sm-package-initialize package-name module-name))
-    (funcall (sm-module-post-fn module-name))))
+;; (defun sm-do-load-module (module-name)
+;;   "Loads the module, the packages it depends on and the related
+;; integration scripts."
+;;   (interactive "sModule: ")
+;;   (sm-require-module-base (sm-module-filename module-name))
+;;   (unless (sm-unmanaged-module-p module-name)
+;;     (funcall (sm-module-pre-fn module-name))
+;;     (dolist (package-name (sm-module-packages module-name))
+;;       (sm-package-initialize package-name module-name))
+;;     (funcall (sm-module-post-fn module-name))))
 
 (defun sm-module-list ()
   "Returns the list of modules in .emacs.d/modules"
@@ -321,7 +366,7 @@ integration scripts."
 
 (defun sm-package-install-with (package-name package-manager)
   (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-installation-function-alist))
-           package-name))
+           (sm-as-symbol package-name)))
 
 (defmacro* sm-package (name &key package-manager unmanaged-p)
   "Declares a package named NAME. Only one of PACKAGE-MANAGER and UNMANAGED-P must be true.
@@ -334,13 +379,14 @@ supported by smotitah - see `sm-supported-package-managers'."
      (setf (sm-get-package ,(sm-as-string name)) (list :package ,(sm-as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p))
      (unless (or ,unmanaged-p (sm-package-installed-p ,(sm-as-string name)))
        (sm-package-install-with ,(sm-as-string name) ,package-manager)
-       (assert (sm-package-installed-p ,(sm-as-string name) nil
+       (assert (sm-package-installed-p ,(sm-as-string name)) nil
 	       "smotitah: Cannot install package %s with package manager %s."
-	       ,name ,package-manager)))))
+	       ,name ,package-manager))))
 
 
 (defun sm-package-installed-packages ()
   "Returns the list of packages installed with package.el."
+  ;; (package-initialize) where to put this?
   (mapcar #'car package-alist))
 
 (defun sm-el-get-installed-packages ()
@@ -366,13 +412,15 @@ SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   "Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
 it also loads the related integration scripts.  If user-managed-p
 is t, just load the package file found in .emacs.d/packages."
+  (unless (featurep (sm-package-feature package-name))
+    (sm-debug-msg "Requiring package %s." package-name))
   (sm-require-if-file-exists (sm-package-feature package-name)
                              (sm-package-filename package-name)))
 
 (defun sm-package-list ()
-  (mapcar (lambda (module-file)
-            (substring (file-name-sans-extension module-file) (length "sm-module-")))
-          (directory-files sm-modules-dir nil ".*.el")))
+  (mapcar (lambda (package-file)
+            (substring (file-name-sans-extension package-file) (length "sm-package-")))
+          (directory-files sm-packages-dir nil "sm-package-.*.el")))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm-create-directories-if-needed ()
@@ -445,7 +493,8 @@ MODULE-NAME in the profile named PROFILE-NAME."
     (sm-find-file-or-fill-template integration-post-filename sm-template-module-integration
                                    `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
                                      ("STAGE" . "post")))
-    (sm-find-file-or-fill-template integration-pre-file
+    (sm-find-file-or-fill-template integration-pre-filename
+				   sm-template-module-integration
                                    `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
                                      ("STAGE" . "pre")))))
 
@@ -471,6 +520,10 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                  sm-template-package
                                  `(("PACKAGE-NAME" . ,package-name))))
 
+
+(defadvice package-install (after sm-offer-package-file-creation (name) activate)
+  (unless (file-exists-p (sm-package-filename (sm-as-string name)))
+    (sm-edit-package (sm-as-string name))))
 
 
 (provide 'smotitah)
