@@ -4,6 +4,7 @@
 
 (require 'cl)
 (package-initialize)
+(package-refresh-contents)
 (when (featurep 'el-get)
   (el-get 'sync))
 ;;;; ------------------------------------- Variables -------------------------------------
@@ -213,7 +214,7 @@ startup, and is not meant to be called directly by the user."
 
 (defun sm-profile-list ()
   "Returns a list of profile files."
-  (mapcar 'file-name-sans-extension (directory-files sm-profiles-dir nil "^\\w.*.el")))
+  (mapcar 'file-name-sans-extension (directory-files sm-profiles-dir nil "^\\w.*\\.el$")))
 
 (defun sm-profile-integrate-module (stage module-name)
   "Loads the integration file for the module named MODULE-NAME
@@ -228,10 +229,12 @@ startup, and is not meant to be called directly by the user."
   (setf sm-active-modules (append sm-active-modules module-names)))
 
 (defmacro* sm-profile-pre ((profile-name) &body body)
+  (declare (indent 1))
   `(defun ,(sm-profile-init-fn profile-name) ()
      ,@body))
 
 (defmacro* sm-profile-post ((profile-name) &body body)
+  (declare (indent 1))
   `(defun ,(sm-profile-post-fn profile-name) ()
      ,@body))
 
@@ -241,6 +244,7 @@ startup, and is not meant to be called directly by the user."
   "Declares a module. This is meant to be called in the module file,
 which must be located in your .emacs.d/modules directory, and must be named
 sm-module-MODULE-NAME.el."
+  (declare (indent 1))
   (let ((mname (sm-as-string module-name)))
     `(progn
        (setf (sm-get-module ,mname) nil)
@@ -341,13 +345,15 @@ of a module named MODULE-NAME."
   "Returns the list of modules in .emacs.d/modules"
   (mapcar (lambda (module-file)
             (substring (file-name-sans-extension module-file) (length "sm-module-")))
-          (directory-files sm-modules-dir nil ".*.el")))
+          (directory-files sm-modules-dir nil "^sm-module-.*\\.el$")))
 
 (defmacro* sm-module-pre ((module-name) &body body)
+  (declare (indent 1))
   `(defun ,(sm-module-pre-fn module-name) ()
      ,@body))
 
 (defmacro* sm-module-post ((module-name) &body body)
+  (declare (indent 1))
   `(defun ,(sm-module-post-fn module-name) ()
      ,@body))
 
@@ -368,6 +374,7 @@ of a module named MODULE-NAME."
   "Declares a package named NAME. Only one of PACKAGE-MANAGER and UNMANAGED-P must be true.
 PACKAGE-MANAGER, if provided, must be one of the package managers
 supported by smotitah - see `sm-supported-package-managers'."
+  (declare (indent 1))
   `(progn
      (assert (sm-xor ,package-manager ,unmanaged-p) nil
 	     "Error in package '%s' declaration: one (and only one)
@@ -416,7 +423,7 @@ is t, just load the package file found in .emacs.d/packages."
 (defun sm-package-list ()
   (mapcar (lambda (package-file)
             (substring (file-name-sans-extension package-file) (length "sm-package-")))
-          (directory-files sm-packages-dir nil "sm-package-.*.el")))
+          (directory-files sm-packages-dir nil "^sm-package-.*\\.el$")))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm-create-directories-if-needed ()
