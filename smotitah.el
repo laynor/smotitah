@@ -88,6 +88,7 @@
 ;;;; ------------------------------------- Utilities -------------------------------------
 
 (defun sm-debug-msg (format-string &rest args)
+  "Debug message utility."
   (when sm-debug 
     (apply 'message (concat "smotitah: " format-string) args)))
 
@@ -268,6 +269,8 @@ depends on."
   `(getf (sm-get-module ,module-name) :packages))
 
 (defun sm-activate-modules (modules)
+  "Loads every module listed in MODULES, loading and activating
+their package dependencies."
   (sm-debug-msg "Initializing modules %S" modules)
   (sm-initialize-modules modules)
   (sm-debug-msg "Running integration scripts, stage: pre.")
@@ -283,18 +286,24 @@ depends on."
   (sm-integrate-modules modules :post))
 
 (defun sm-initialize-modules (modules)
+  "Internal. Loads the module files."
   (dolist (m modules)
     (sm-debug-msg "Requiring module file for %s" m)
     (sm-require-module-base m)
     (sm-debug-msg "   Module %S: %S" m (sm-get-module m))))
 
 (defun sm-integrate-modules (modules stage)
+  "Internal. Runs the integration scripts for MODULES in the
+current profile, before (:pre) or after (:post) the module loading happens, as
+specified in STAGE."
   (dolist (m modules)
     (unless (sm-unmanaged-module-p m)
       (sm-debug-msg "Requiring integration for %s, %s" m stage)
       (sm-profile-integrate-module stage m))))
 
 (defun sm-call-modules-fn (modules stage)
+  "Internal. Calls the pre or post functions for MODULES, as specified by
+STAGE."
   (dolist (m modules)
     (unless (sm-unmanaged-module-p m)
       (sm-debug-msg "Calling %s's %s fn." m stage)
@@ -303,6 +312,7 @@ depends on."
 		 (:post (sm-module-post-fn m)))))))
 
 (defun sm-require-module-packages (module)
+  "Internal. Requires a module file."
   (unless (sm-unmanaged-module-p module)
     (let ((packages (sm-module-packages module)))
       (sm-debug-msg "Requiring packages for %S: %S" module (sm-module-packages module))
@@ -318,17 +328,17 @@ depends on."
 ;;   (sm-profile-integrate-module :post module-name))
 
 (defun sm-module-pre-fn (module-name)
-  "Returns a symbol named like the initialization function of a
+  "Internal. Returns a symbol named like the initialization function of a
 module named MODULE-NAME."
   (intern (format sm-module-functions-format module-name "pre")))
 
 (defun sm-module-post-fn (module-name)
-  "Returns a symbol named like the post-module-loading function
+  "Internal. Returns a symbol named like the post-module-loading function
 of a module named MODULE-NAME."
   (intern (format sm-module-functions-format module-name "post")))
 
 (defun sm-require-module-base (module-name)
-  "Requires a module file. Not intended to be used directly."
+  "Internal. Requires a module file."
   (require (sm-module-feature module-name)
            (sm-module-filename (sm-as-string module-name))))
 
@@ -366,10 +376,12 @@ AFTER the packages are loaded in a module file."
 ;;;; ------------------------------------- Packages --------------------------------------
 
 (defun sm-xor (x y)
+  "Internal. Boolean XOR."
   (not (eq (and x t)
            (and y t))))
 
 (defmacro sm-get-package (name)
+  "Internal. Gets the package description for the package named NAME."
   `(gethash ,name sm-package-table))
 
 (defun sm-package-install-with (package-name package-manager)
@@ -402,25 +414,25 @@ supported by smotitah - see `sm-supported-package-managers'."
 
 
 (defun sm-package-installed-packages ()
-  "Returns the list of packages installed with package.el."
+  "Internal. Returns the list of packages installed with package.el."
   ;; (package-initialize) where to put this?
   (mapcar #'car package-alist))
 
 (defun sm-el-get-installed-packages ()
-  "Returns the list of packages installed with el-get."
+  "Internal. Returns the list of packages installed with el-get."
   (if (fboundp 'el-get-package-is-installed)
       (remove-if-not 'el-get-package-is-installed (el-get-read-all-recipe-names))
     nil))
 
 (defun sm-all-installed-packages ()
-  "Returns all the packages installed with the package managers
+  "Internal. Returns all the packages installed with the package managers
 listed in SM-SUPPORTED-PACKAGE-MANAGERS"
   (remove-duplicates (append (sm-package-installed-packages)
 			     (sm-el-get-installed-packages))
 		     :test 'equal))
 
 (defun sm-package-installed-p (package-name)
-  "Returns t if the package named PACKAGE-NAME is installed with
+  "Internal. Returns t if the package named PACKAGE-NAME is installed with
 any of the package managers listed in
 SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   (member (sm-as-symbol package-name) (sm-all-installed-packages)))
@@ -431,7 +443,7 @@ SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
     (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
 
 (defun* sm-package-initialize (package-name)
-  "Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
+  "Internal. Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
 it also loads the related integration scripts.  If user-managed-p
 is t, just load the package file found in .emacs.d/packages."
   (unless (featurep (sm-package-feature package-name))
@@ -440,13 +452,14 @@ is t, just load the package file found in .emacs.d/packages."
                              (sm-package-filename package-name)))
 
 (defun sm-package-list ()
+  "Returns the list of packages managed by smotitah."
   (mapcar (lambda (package-file)
             (substring (file-name-sans-extension package-file) (length "sm-package-")))
           (directory-files sm-packages-dir nil "^sm-package-.*\\.el$")))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm-create-directories-if-needed ()
-  "Creates the profiles, modules and packages directories in your
+  "Internal. Creates the profiles, modules and packages directories in your
 user emacs dir if not present"
   (ignore-errors (make-directory sm-profiles-dir))
   (ignore-errors (make-directory sm-modules-dir))
@@ -456,13 +469,14 @@ user emacs dir if not present"
           user-emacs-directory))
 
 (defun sm-create-base-module-if-needed ()
-  "Creates a stub for the profile-shared base module."
+  "Internal. Creates a stub for the profile-shared base module."
   (unless (file-exists-p sm-base-module-file-name)
     (copy-file (concat sm-template-dir "sm-module-base-template.el")
                sm-base-module-file-name)))
 
 (defun sm-initialize ()
-  "Initializes the smotitah configuration framework."
+  "Initializes the smotitah configuration framework. Call this in
+your init file."
   (interactive)
   (let ((profile-list (sm-profile-list))
         (modules-to-activate (getenv "EMACS_MODULES")))
@@ -487,13 +501,21 @@ user emacs dir if not present"
 
 
 (defun sm-select-profile-interactively ()
-  "Prompts the user to select a profile to load."
+  "Internal. Prompts the user to select a profile to load."
   (interactive)
   (ido-completing-read "Load Profile: " (sm-profile-list)))
 
-;;;; ----------------------------------- User commands -----------------------------------
+
+;;;; -------------------------------- Template Subsystem ---------------------------------
 
 (defun* sm-fill-template-and-save (template-filename destination-file substitution-alist &optional (visit t))
+  "Internal. This function implements a simple and limited
+template system.
+Saves TEMPLATE-FILENAME as DESTINATION-FILE,performing the
+substitutions specified in SUBSTITUTION-ALIST.
+The substitutions are represented as cons cells,
+ (MATCH-STRING . REPLACE). If visit is non-nil, visit
+DESTINATION-FILE (default)."
   (let ((buf (find-file-noselect template-filename)))
     (with-current-buffer buf
       (dolist (sub substitution-alist)
@@ -506,7 +528,13 @@ user emacs dir if not present"
     (setq inhibit-splash-screen t)
     (find-file destination-file)))
 
+;;;; ----------------------------------- User commands -----------------------------------
+
 (defun sm-find-file-or-fill-template (filename template-filename substitutions)
+  "If the file pointed by FILENAME does not exist, fills
+TEMPLATE-FILENAME as specified by SUBSTITUTIONS - see
+`sm-fill-template-and-save' - and saves the results to
+FILENAME. Visits FILENAME."
   (if (file-exists-p filename)
       (find-file filename)
     (sm-fill-template-and-save template-filename filename substitutions)))
@@ -550,6 +578,8 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                  `(("PACKAGE-NAME" . ,package-name))))
 
 
+;;; This advice hooks after package-install creating a clean package file
+;;; for all the packages that do not still have one.
 (defadvice package-install (after sm-offer-package-file-creation (name) activate)
   (unless (file-exists-p (sm-package-filename (sm-as-string name)))
     (dolist (p (sm-package-installed-packages))
