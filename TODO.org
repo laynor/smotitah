@@ -1,3 +1,6 @@
+
+* TODO make some sort of plugin system for package managers
+* TODO integrate el-get
 * TODO integrate with enotify or similar library 
 * TODO do not activate packages unless required by modules
   package.el: Look into package-activate and package-initialize
