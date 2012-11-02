@@ -3,7 +3,8 @@
 ;; consider giving a hook for module loading
 
 (require 'cl)
-(package-initialize)
+(setq package-enable-at-startup nil)
+(package-initialize t)
 (package-refresh-contents)
 (when (featurep 'el-get)
   (el-get 'sync))
@@ -82,6 +83,7 @@
 
 ;;; TODO integrate package managers in a generic way
 (defvar sm-package-installation-function-alist '((el-get . el-get-install) (package . package-install)))
+(defvar sm-package-activation-function-alist '((package . sm-package-activate-package)))
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
@@ -348,11 +350,15 @@ of a module named MODULE-NAME."
           (directory-files sm-modules-dir nil "^sm-module-.*\\.el$")))
 
 (defmacro* sm-module-pre ((module-name) &body body)
+  "Use this to surround the statements that should be executed
+BEFORE the packages are loaded in a module file."
   (declare (indent 1))
   `(defun ,(sm-module-pre-fn module-name) ()
      ,@body))
 
 (defmacro* sm-module-post ((module-name) &body body)
+  "Use this to surround the statements that should be executed
+AFTER the packages are loaded in a module file."
   (declare (indent 1))
   `(defun ,(sm-module-post-fn module-name) ()
      ,@body))
@@ -367,7 +373,13 @@ of a module named MODULE-NAME."
   `(gethash ,name sm-package-table))
 
 (defun sm-package-install-with (package-name package-manager)
+  "Installs PACKAGE-NAME with PACKAGE-MANAGER."
   (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-installation-function-alist))
+           (sm-as-symbol package-name)))
+
+(defun sm-package-activate-with (package-name package-manager)
+  "Activates PACKAGE-NAME with PACKAGE-MANAGER."
+  (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-activation-function-alist))
            (sm-as-symbol package-name)))
 
 (defmacro* sm-package (name &key package-manager unmanaged-p)
@@ -384,7 +396,9 @@ supported by smotitah - see `sm-supported-package-managers'."
        (sm-package-install-with ,(sm-as-string name) ,package-manager)
        (assert (sm-package-installed-p ,(sm-as-string name)) nil
 	       "smotitah: Cannot install package %s with package manager %s."
-	       ,name ,package-manager))))
+	       ,name ,package-manager))
+     (unless ,unmanaged-p
+       (sm-package-activate-with ,(sm-as-string name) ,package-manager))))
 
 
 (defun sm-package-installed-packages ()
@@ -410,6 +424,11 @@ listed in SM-SUPPORTED-PACKAGE-MANAGERS"
 any of the package managers listed in
 SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   (member (sm-as-symbol package-name) (sm-all-installed-packages)))
+
+(defun sm-package-activate-package (package-name)
+  "Activates a package with package.el"
+  (let ((pn (sm-as-symbol package-name)))
+    (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
 
 (defun* sm-package-initialize (package-name)
   "Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
@@ -445,19 +464,26 @@ user emacs dir if not present"
 (defun sm-initialize ()
   "Initializes the smotitah configuration framework."
   (interactive)
-  (let ((profile-list (sm-profile-list)))
+  (let ((profile-list (sm-profile-list))
+        (modules-to-activate (getenv "EMACS_MODULES")))
     (sm-create-base-module-if-needed)
     (sm-create-directories-if-needed)
-    (setq sm-profile (getenv "EMACS_PROFILE"))
-    (when (and (null sm-profile) profile-list)
-      (setq sm-profile (sm-select-profile-interactively)))
-    (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
-	   (let ((profile-name (read-from-minibuffer "Profile name: ")))
-	     (sm-find-file-or-fill-template (sm-profile-filename profile-name)
-					    sm-template-profile `(("PROFILE-NAME" . ,profile-name)))))
-      
-	  (sm-profile
-	    (sm-load-profile sm-profile)))))
+    (cond ((null modules-to-activate) 
+	   (setq sm-profile (getenv "EMACS_PROFILE"))
+	   (when (and (null sm-profile) profile-list)
+	     (setq sm-profile (sm-select-profile-interactively)))
+	   (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
+		  (let ((profile-name (read-from-minibuffer "Profile name: ")))
+		    (sm-find-file-or-fill-template (sm-profile-filename profile-name)
+						   sm-template-profile `(("PROFILE-NAME" . ,profile-name)))))
+		 
+		 (sm-profile
+		  (sm-load-profile sm-profile))))
+
+	  (t (sm-debug-msg "Loading modules %S." modules-to-activate)
+             (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
+               (sm-activate-modules mm))))))
+
 
 
 (defun sm-select-profile-interactively ()
@@ -533,7 +559,13 @@ MODULE-NAME in the profile named PROFILE-NAME."
           (sm-fill-template-and-save sm-template-package
                                      (sm-package-filename package-name)
                                      `(("PACKAGE-NAME" . ,package-name)
-                                       ("PACKAGEMANAGER" . "\"package\""))))))))
+                                       ("PACKAGEMANAGER" . "\"package\""))
+                                     nil))))))
 
 
+;;;; ---------------------- Indentation kludges for macros ------------------------
+(put 'sm-profile-pre 'lisp-indent-function 1)
+(put 'sm-module-pre 'lisp-indent-function 1)
+(put 'sm-profile-post 'lisp-indent-function 1)
+(put 'sm-module-post 'lisp-indent-function 1)
 (provide 'smotitah)
