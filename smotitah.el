@@ -397,7 +397,8 @@ supported by smotitah - see `sm-supported-package-managers'."
        (assert (sm-package-installed-p ,(sm-as-string name)) nil
 	       "smotitah: Cannot install package %s with package manager %s."
 	       ,name ,package-manager))
-     (sm-package-activate-with ,(sm-as-string name) ,package-manager)))
+     (unless ,unmanaged-p
+       (sm-package-activate-with ,(sm-as-string name) ,package-manager))))
 
 
 (defun sm-package-installed-packages ()
