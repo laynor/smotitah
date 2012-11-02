@@ -467,7 +467,7 @@ user emacs dir if not present"
 
 ;;;; ----------------------------------- User commands -----------------------------------
 
-(defun sm-fill-template-and-save (template-filename destination-file substitution-alist)
+(defun* sm-fill-template-and-save (template-filename destination-file substitution-alist &optional (visit t))
   (let ((buf (find-file-noselect template-filename)))
     (with-current-buffer buf
       (dolist (sub substitution-alist)
@@ -476,10 +476,10 @@ user emacs dir if not present"
           (replace-match (cdr sub) t t)))
       (write-file destination-file))
     (kill-buffer buf))
-  (setq inhibit-splash-screen t)
-  (find-file destination-file))
+  (when visit
+    (setq inhibit-splash-screen t)
+    (find-file destination-file)))
 
-;;; TODO use templates
 (defun sm-find-file-or-fill-template (filename template-filename substitutions)
   (if (file-exists-p filename)
       (find-file filename)
@@ -526,7 +526,14 @@ MODULE-NAME in the profile named PROFILE-NAME."
 
 (defadvice package-install (after sm-offer-package-file-creation (name) activate)
   (unless (file-exists-p (sm-package-filename (sm-as-string name)))
-    (sm-edit-package (sm-as-string name))))
+    (dolist (p (sm-package-installed-packages))
+      (let* ((package-name (sm-as-string p))
+             (sm-package-file (sm-package-filename package-name)))
+        (unless (file-exists-p sm-package-file)
+          (sm-fill-template-and-save sm-template-package
+                                     (sm-package-filename package-name)
+                                     `(("PACKAGE-NAME" . ,package-name)
+                                       ("PACKAGEMANAGER" . "\"package\""))))))))
 
 
 (provide 'smotitah)
