@@ -445,19 +445,26 @@ user emacs dir if not present"
 (defun sm-initialize ()
   "Initializes the smotitah configuration framework."
   (interactive)
-  (let ((profile-list (sm-profile-list)))
+  (let ((profile-list (sm-profile-list))
+        (modules-to-activate (getenv "EMACS_MODULES")))
     (sm-create-base-module-if-needed)
     (sm-create-directories-if-needed)
-    (setq sm-profile (getenv "EMACS_PROFILE"))
-    (when (and (null sm-profile) profile-list)
-      (setq sm-profile (sm-select-profile-interactively)))
-    (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
-	   (let ((profile-name (read-from-minibuffer "Profile name: ")))
-	     (sm-find-file-or-fill-template (sm-profile-filename profile-name)
-					    sm-template-profile `(("PROFILE-NAME" . ,profile-name)))))
-      
-	  (sm-profile
-	    (sm-load-profile sm-profile)))))
+    (cond ((null modules-to-activate) 
+	   (setq sm-profile (getenv "EMACS_PROFILE"))
+	   (when (and (null sm-profile) profile-list)
+	     (setq sm-profile (sm-select-profile-interactively)))
+	   (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
+		  (let ((profile-name (read-from-minibuffer "Profile name: ")))
+		    (sm-find-file-or-fill-template (sm-profile-filename profile-name)
+						   sm-template-profile `(("PROFILE-NAME" . ,profile-name)))))
+		 
+		 (sm-profile
+		  (sm-load-profile sm-profile))))
+
+	  (t (sm-debug-msg "Loading modules %S." modules-to-activate)
+             (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
+               (sm-activate-modules mm))))))
+
 
 
 (defun sm-select-profile-interactively ()
