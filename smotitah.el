@@ -3,7 +3,8 @@
 ;; consider giving a hook for module loading
 
 (require 'cl)
-(package-initialize)
+(setq package-enable-at-startup nil)
+(package-initialize t)
 (package-refresh-contents)
 (when (featurep 'el-get)
   (el-get 'sync))
@@ -82,6 +83,7 @@
 
 ;;; TODO integrate package managers in a generic way
 (defvar sm-package-installation-function-alist '((el-get . el-get-install) (package . package-install)))
+(defvar sm-package-activation-function-alist '((package . sm-package-activate-package)))
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
@@ -367,7 +369,13 @@ of a module named MODULE-NAME."
   `(gethash ,name sm-package-table))
 
 (defun sm-package-install-with (package-name package-manager)
+  "Installs PACKAGE-NAME with PACKAGE-MANAGER."
   (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-installation-function-alist))
+           (sm-as-symbol package-name)))
+
+(defun sm-package-activate-with (package-name package-manager)
+  "Activates PACKAGE-NAME with PACKAGE-MANAGER."
+  (funcall (cdr (assoc (sm-as-symbol package-manager) sm-package-activation-function-alist))
            (sm-as-symbol package-name)))
 
 (defmacro* sm-package (name &key package-manager unmanaged-p)
@@ -384,7 +392,8 @@ supported by smotitah - see `sm-supported-package-managers'."
        (sm-package-install-with ,(sm-as-string name) ,package-manager)
        (assert (sm-package-installed-p ,(sm-as-string name)) nil
 	       "smotitah: Cannot install package %s with package manager %s."
-	       ,name ,package-manager))))
+	       ,name ,package-manager))
+     (sm-package-activate-with ,(sm-as-string name) ,package-manager)))
 
 
 (defun sm-package-installed-packages ()
@@ -410,6 +419,11 @@ listed in SM-SUPPORTED-PACKAGE-MANAGERS"
 any of the package managers listed in
 SM-SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   (member (sm-as-symbol package-name) (sm-all-installed-packages)))
+
+(defun sm-package-activate-package (package-name)
+  "Activates a package with package.el"
+  (let ((pn (sm-as-symbol package-name)))
+    (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
 
 (defun* sm-package-initialize (package-name)
   "Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
