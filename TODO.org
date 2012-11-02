@@ -1,4 +1,7 @@
-
+* TODO melpa recipe
+* TODO check who's loading eieio, maybe it's smotitah.
+* TODO make a plugin system for package managers
+* TODO integrate el-get
 * TODO package removal
 * TODO integrate with enotify or similar library 
 * TODO do not activate packages unless required by modules
