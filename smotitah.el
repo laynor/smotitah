@@ -350,11 +350,15 @@ of a module named MODULE-NAME."
           (directory-files sm-modules-dir nil "^sm-module-.*\\.el$")))
 
 (defmacro* sm-module-pre ((module-name) &body body)
+  "Use this to surround the statements that should be executed
+BEFORE the packages are loaded in a module file."
   (declare (indent 1))
   `(defun ,(sm-module-pre-fn module-name) ()
      ,@body))
 
 (defmacro* sm-module-post ((module-name) &body body)
+  "Use this to surround the statements that should be executed
+AFTER the packages are loaded in a module file."
   (declare (indent 1))
   `(defun ,(sm-module-post-fn module-name) ()
      ,@body))
@@ -554,7 +558,13 @@ MODULE-NAME in the profile named PROFILE-NAME."
           (sm-fill-template-and-save sm-template-package
                                      (sm-package-filename package-name)
                                      `(("PACKAGE-NAME" . ,package-name)
-                                       ("PACKAGEMANAGER" . "\"package\""))))))))
+                                       ("PACKAGEMANAGER" . "\"package\""))
+                                     nil))))))
 
 
+;;;; ---------------------- Indentation kludges for macros ------------------------
+(put 'sm-profile-pre 'lisp-indent-function 1)
+(put 'sm-module-pre 'lisp-indent-function 1)
+(put 'sm-profile-post 'lisp-indent-function 1)
+(put 'sm-module-post 'lisp-indent-function 1)
 (provide 'smotitah)
