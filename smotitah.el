@@ -481,6 +481,7 @@ user emacs dir if not present"
   (interactive)
   (ido-completing-read "Load Profile: " (sm-profile-list)))
 
+;;;###autoload
 (defun sm-initialize ()
   "Initializes the smotitah configuration framework. Call this in
 your init file."
@@ -558,6 +559,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                       ("STAGE" . "pre")))))
 
 
+;;;###autoload
 (defun sm-edit-profile (profile-name)
   "Opens the profile file for the profile named PROFILE-NAME."
   (interactive (list (ido-completing-read "Edit Profile: " (sm-profile-list) nil nil sm-profile)))
@@ -565,6 +567,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                   sm--template-profile
                                   `(("PROFILE-NAME" . ,profile-name))))
 
+;;;###autoload
 (defun sm-edit-module (module-name)
   "Opens the module file for the module named MODULE-NAME."
   (interactive (list (ido-completing-read "Edit Module: " (sm-module-list))))
@@ -572,6 +575,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                   sm--template-module
                                   `(("MODULE-NAME" . ,module-name))))
 
+;;;###autoload
 (defun sm-edit-package (package-name)
   "Opens the package file for the package named PACKAGE-NAME."
   (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
