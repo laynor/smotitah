@@ -1,3 +1,6 @@
+* TODO write tutorial
+* TODO taskbar indicator
+* TODO log buffer
 * TODO melpa recipe
 * TODO check who's loading eieio, maybe it's smotitah.
 * TODO make a plugin system for package managers
