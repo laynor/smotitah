@@ -5,7 +5,6 @@
 (require 'cl)
 (setq package-enable-at-startup nil)
 (package-initialize t)
-(package-refresh-contents)
 (when (featurep 'el-get)
   (el-get 'sync))
 ;;;; ------------------------------------- Variables -------------------------------------
@@ -81,6 +80,8 @@
 (defvar sm--package-table (make-hash-table :test 'equal)
   "Table of loaded packages.")
 
+(defvar sm--package-refreshed-p nil
+  "Whether or not the package list for package.el has been refreshed.")
 ;;; TODO integrate package managers in a generic way
 (defvar sm--package-installation-function-alist '((el-get . el-get-install) (package . package-install)))
 (defvar sm--package-activation-function-alist '((package . sm--package-activate-package)))
@@ -388,6 +389,9 @@ AFTER the packages are loaded in a module file."
 
 (defun sm--package-install-with (package-name package-manager)
   "Installs PACKAGE-NAME with PACKAGE-MANAGER."
+  (unless sm--package-refreshed-p 
+    (setf sm--package-refreshed-p t)
+    (package-refresh-contents))
   (funcall (cdr (assoc (sm--as-symbol package-manager) sm--package-installation-function-alist))
            (sm--as-symbol package-name)))
 
