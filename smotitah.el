@@ -401,18 +401,20 @@ AFTER the packages are loaded in a module file."
 PACKAGE-MANAGER, if provided, must be one of the package managers
 supported by smotitah - see `sm--supported-package-managers'."
   (declare (indent 1))
-  `(progn
-     (assert (sm--xor ,package-manager ,unmanaged-p) nil
-	     "Error in package '%s' declaration: one (and only one)
+  (let ((unmanaged-p-1 (gensym)))
+    `(progn
+       (assert (sm--xor ,package-manager ,unmanaged-p) nil
+               "Error in package '%s' declaration: one (and only one)
               of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
-     (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p))
-     (unless (or ,unmanaged-p (sm--package-installed-p ,(sm--as-string name)))
-       (sm--package-install-with ,(sm--as-string name) ,package-manager)
-       (assert (sm--package-installed-p ,(sm--as-string name)) nil
-	       "smotitah: Cannot install package %s with package manager %s."
-	       ,name ,package-manager))
-     (unless ,unmanaged-p
-       (sm--package-activate-with ,(sm--as-string name) ,package-manager))))
+       (let ((,unmanaged-p-1 (or ,unmanaged-p (equal (sm--as-string ,package-manager) "builtin"))))
+           (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p-1))
+         (unless (or ,unmanaged-p-1 (sm--package-installed-p ,(sm--as-string name)))
+           (sm--package-install-with ,(sm--as-string name) ,package-manager)
+           (assert (sm--package-installed-p ,(sm--as-string name)) nil
+                   "smotitah: Cannot install package %s with package manager %s."
+                   ,name ,package-manager))
+         (unless ,unmanaged-p-1
+           (sm--package-activate-with ,(sm--as-string name) ,package-manager))))))
 
 
 (defun sm--package-installed-packages ()
