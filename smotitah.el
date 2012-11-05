@@ -441,11 +441,6 @@ any of the package managers listed in
 SM--SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
   (member (sm--as-symbol package-name) (sm--all-installed-packages)))
 
-(defun sm--package-activate-package (package-name)
-  "Activates a package with package.el"
-  (let ((pn (sm--as-symbol package-name)))
-    (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
-
 (defun* sm--package-initialize (package-name)
   "Internal. Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
 it also loads the related integration scripts.  If user-managed-p
@@ -460,6 +455,12 @@ is t, just load the package file found in .emacs.d/packages."
   (mapcar (lambda (package-file)
             (substring (file-name-sans-extension package-file) (length "sm-package-")))
           (directory-files sm--packages-dir nil "^sm-package-.*\\.el$")))
+
+
+(defun sm--package-activate-package (package-name)
+  "Activates a package with package.el"
+  (let ((pn (sm--as-symbol package-name)))
+    (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm--create-directories-if-needed ()
@@ -494,14 +495,17 @@ your init file."
     (sm--create-directories-if-needed)
     (cond ((null modules-to-activate) 
 	   (setq sm-profile (getenv "EMACS_PROFILE"))
+           ;; Interactively prompt for profile if profiles are present
 	   (when (and (null sm-profile) profile-list)
 	     (setq sm-profile (sm--select-profile-interactively)))
 	   (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
+                  ;; Create profile interactively
 		  (let ((profile-name (read-from-minibuffer "Profile name: ")))
 		    (sm--find-file-or-fill-template (sm--profile-filename profile-name)
                                                     sm--template-profile `(("PROFILE-NAME" . ,profile-name)))))
 		 
 		 (sm-profile
+                  ;; Load profile
 		  (sm--load-profile sm-profile))))
 
 	  (t (sm-debug-msg "Loading modules %S." modules-to-activate)
