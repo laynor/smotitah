@@ -1,3 +1,4 @@
+;;;; -*- lexical-binding: t -*-
 ;; Super-modular
 ;; Probably a preloading of certain modules is necessary for some profiles
 ;; consider giving a hook for module loading
@@ -61,7 +62,7 @@
 (defvar sm--base-module-file-name (concat sm--modules-dir "sm-module-base.el")
   "Base profile file name.")
 
-(defvar sm--profile-module-integration-file-name-format "%s-%s-%s.el"
+(defvar sm--profile-module-integration-file-name-format "%s-%s-%s"
   "Format string used to calculate the name of the integration
   files relative to a given module and profile.")
 
@@ -98,9 +99,15 @@
   (when (file-exists-p filename)
     (load filename)))
 
+(defun sm--script-exists-p (filename)
+  (some (lambda (suffix)
+	  (file-exists-p (concat filename suffix)))
+	(get-load-suffixes)))
+
 (defun sm-require-if-file-exists (feature filename)
   "Requires a feature if filename exists."
-  (when (file-exists-p filename)
+  (when (sm--script-exists-p filename)
+    (sm-debug-msg "smotitah: Requiring feature %S from %S." feature filename)
     (require feature filename)))
 
 (defun sm--as-string (obj)
@@ -130,15 +137,15 @@ symbol."
 
 (defun sm--profile-filename (profile-name)
   "Internal. Returns the file path for a profile named PROFILE-NAME."
-  (concat sm--profiles-dir (sm--as-string profile-name) ".el"))
+  (concat sm--profiles-dir (sm--as-string profile-name)))
 
 (defun sm--module-filename (module-name)
   "Returns the file path for a module named MODULE-NAME."
-  (concat sm--modules-dir "sm-module-" (sm--as-string  module-name) ".el"))
+  (concat sm--modules-dir "sm-module-" (sm--as-string  module-name)))
 
 (defun sm--package-filename (package-name)
   "Returns the file path for a package named PACKAGE-NAME."
-  (concat sm--packages-dir "sm-package-" (sm--as-string package-name) ".el"))
+  (concat sm--packages-dir "sm-package-" (sm--as-string package-name)))
 
 (defun sm--profile-module-integration-file (profile-name module-name stage)
   "Returns the file path for the integration file that integrates
@@ -608,6 +615,14 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                         ("PACKAGEMANAGER" . "\"package\""))
                                       nil))))))
 
+;;;; ------------------------------------ Compilation ------------------------------------
+
+(defun sm-recompile-all ()
+  (interactive)
+  (byte-recompile-directory sm--profiles-dir 0 t)
+  (byte-recompile-directory sm--modules-dir 0 t)
+  (byte-recompile-directory sm--packages-dir 0 t)
+  (byte-recompile-file (concat sm--directory "smotitah.el") t 0))
 
 ;;;; ---------------------- Indentation kludges for macros ------------------------
 (put 'sm-profile-pre 'lisp-indent-function 1)

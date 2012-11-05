@@ -1,3 +1,5 @@
+* TODO compile smotitah files if needed (customizable?)
+* TODO module grouping as module dependencies (:require-modules)
 * TODO write tutorial
 * TODO statusbar indicator
 * TODO log buffer
