@@ -565,8 +565,8 @@ MODULE-NAME in the profile named PROFILE-NAME."
   (interactive (let ((pname (ido-completing-read "Integrate in profile: " (sm-profile-list) nil t sm-profile))
                      (mname (ido-completing-read "Integrate module: " (sm-module-list) nil nil)))
                  (list pname mname)))
-  (let ((integration-pre-filename (sm--profile-module-integration-file profile-name module-name :pre))
-        (integration-post-filename (sm--profile-module-integration-file profile-name module-name :post)))
+  (let ((integration-pre-filename (concat (sm--profile-module-integration-file profile-name module-name :pre) ".el"))
+        (integration-post-filename (concat (sm--profile-module-integration-file profile-name module-name :post) ".el")))
     (sm--find-file-or-fill-template integration-post-filename sm--template-module-integration
                                     `(("PROFILE-NAME" . ,profile-name) ("MODULE-NAME" . ,module-name)
                                       ("STAGE" . "post")))
@@ -580,7 +580,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
 (defun sm-edit-profile (profile-name)
   "Opens the profile file for the profile named PROFILE-NAME."
   (interactive (list (ido-completing-read "Edit Profile: " (sm-profile-list) nil nil sm-profile)))
-  (sm--find-file-or-fill-template (sm--profile-filename profile-name)
+  (sm--find-file-or-fill-template (concat (sm--profile-filename profile-name) ".el")
                                   sm--template-profile
                                   `(("PROFILE-NAME" . ,profile-name))))
 
@@ -588,7 +588,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
 (defun sm-edit-module (module-name)
   "Opens the module file for the module named MODULE-NAME."
   (interactive (list (ido-completing-read "Edit Module: " (sm-module-list))))
-  (sm--find-file-or-fill-template (sm--module-filename module-name)
+  (sm--find-file-or-fill-template (concat (sm--module-filename module-name) ".el")
                                   sm--template-module
                                   `(("MODULE-NAME" . ,module-name))))
 
@@ -596,7 +596,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
 (defun sm-edit-package (package-name)
   "Opens the package file for the package named PACKAGE-NAME."
   (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
-  (sm--find-file-or-fill-template (sm--package-filename package-name)
+  (sm--find-file-or-fill-template (concat (sm--package-filename package-name) ".el")
                                   sm--template-package
                                   `(("PACKAGE-NAME" . ,package-name))))
 
