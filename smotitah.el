@@ -607,7 +607,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
   (unless (file-exists-p (sm--package-filename (sm--as-string name)))
     (dolist (p (sm--package-installed-packages))
       (let* ((package-name (sm--as-string p))
-             (sm-package-file (sm--package-filename package-name)))
+             (sm-package-file (concat (sm--package-filename package-name) ".el")))
         (unless (file-exists-p sm-package-file)
           (sm--fill-template-and-save sm--template-package
                                       (sm--package-filename package-name)
