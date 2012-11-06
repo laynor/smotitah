@@ -610,7 +610,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
              (sm-package-file (concat (sm--package-filename package-name) ".el")))
         (unless (file-exists-p sm-package-file)
           (sm--fill-template-and-save sm--template-package
-                                      (sm--package-filename package-name)
+                                      sm-package-file
                                       `(("PACKAGE-NAME" . ,package-name)
                                         ("PACKAGEMANAGER" . "\"package\""))
                                       nil))))))
