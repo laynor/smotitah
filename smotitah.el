@@ -118,8 +118,8 @@ try to work around it.")
 
 (defun sm--script-exists-p (filename)
   (some (lambda (suffix)
-	  (file-exists-p (concat filename suffix)))
-	(get-load-suffixes)))
+          (file-exists-p (concat filename suffix)))
+        (get-load-suffixes)))
 
 (defun sm-require-if-file-exists (feature filename)
   "Requires a feature if filename exists."
@@ -133,9 +133,9 @@ if it is a string"
   (etypecase obj
     (string obj)
     (symbol (let ((name (symbol-name obj)))
-	      (if (= (elt name 0) ?:)
-		  (subseq name 1)
-		name)))))
+              (if (= (elt name 0) ?:)
+                  (subseq name 1)
+                name)))))
 
 (defun sm--as-symbol (obj)
   "Internal. Converts a string to a symbol, or returns OBJ if ir is a
@@ -230,18 +230,18 @@ startup, and is not meant to be called directly by the user."
   (unless sm-unmanaged-profile
     ;; Try to call the profile's init function
     (condition-case nil
-	(progn
-	  (sm-debug-msg "Calling profile init fn")
-	  (funcall (sm--profile-init-fn profile-name)))
+        (progn
+          (sm-debug-msg "Calling profile init fn")
+          (funcall (sm--profile-init-fn profile-name)))
       (error (message "smotitah: no profile initialization function")))
     ;; Load the modules
     (sm-debug-msg "Loading modules")
     (sm--activate-modules sm--active-modules)
     ;; Try to call the profile's post module loading function
     (condition-case nil
-	(progn
-	  (sm-debug-msg "Calling profile post fn")
-	  (funcall (sm--profile-post-fn profile-name)))
+        (progn
+          (sm-debug-msg "Calling profile post fn")
+          (funcall (sm--profile-post-fn profile-name)))
       (error (message "smotitah: no profile post-module-loading function"))))
   (sm-debug-msg "Profile loading: end."))
 
@@ -336,8 +336,8 @@ STAGE."
     (unless (sm--unmanaged-module-p m)
       (sm-debug-msg "Calling %s's %s fn." m stage)
       (funcall (case stage
-		 (:pre (sm--module-pre-fn m))
-		 (:post (sm--module-post-fn m)))))))
+                 (:pre (sm--module-pre-fn m))
+                 (:post (sm--module-post-fn m)))))))
 
 (defun sm--require-module-packages (module)
   "Internal. Requires a module file."
@@ -345,7 +345,7 @@ STAGE."
     (let ((packages (sm--module-packages module)))
       (sm-debug-msg "Requiring packages for %S: %S" module (sm--module-packages module))
       (dolist (p packages)
-	(sm--package-initialize p)))))
+        (sm--package-initialize p)))))
 
 (defun sm--activate-modules (modules)
   "Loads every module listed in MODULES, loading and activating
@@ -435,7 +435,7 @@ supported by smotitah - see `sm--supported-package-managers'."
                "Error in package '%s' declaration: one (and only one)
               of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
        (let ((,unmanaged-p-1 (or ,unmanaged-p (equal (sm--as-string ,package-manager) "builtin"))))
-           (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p-1))
+         (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p-1))
          (unless (or ,unmanaged-p-1 (sm--package-installed-p ,(sm--as-string name)))
            (sm--package-install-with ,(sm--as-string name) ,package-manager)
            (assert (sm--package-installed-p ,(sm--as-string name)) nil
@@ -460,8 +460,8 @@ supported by smotitah - see `sm--supported-package-managers'."
   "Internal. Returns all the packages installed with the package managers
 listed in SM--SUPPORTED-PACKAGE-MANAGERS"
   (remove-duplicates (append (sm--package-installed-packages)
-			     (sm--el-get-installed-packages))
-		     :test 'equal))
+                             (sm--el-get-installed-packages))
+                     :test 'equal))
 
 (defun sm--package-installed-p (package-name)
   "Internal. Returns t if the package named PACKAGE-NAME is installed with
@@ -524,28 +524,28 @@ your init file."
 
   (package-initialize t)
   (when (featurep 'el-get)
-  (el-get 'sync))
+    (el-get 'sync))
 
   (let ((profile-list (sm-profile-list))
         (modules-to-activate (getenv "EMACS_MODULES")))
     (sm--create-base-module-if-needed)
     (sm--create-directories-if-needed)
     (cond ((null modules-to-activate)
-	   (setq sm-profile (getenv "EMACS_PROFILE"))
+           (setq sm-profile (getenv "EMACS_PROFILE"))
            ;; Interactively prompt for profile if profiles are present
-	   (when (and (null sm-profile) profile-list)
-	     (setq sm-profile (sm--select-profile-interactively)))
-	   (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
+           (when (and (null sm-profile) profile-list)
+             (setq sm-profile (sm--select-profile-interactively)))
+           (cond ((and (null profile-list) (yes-or-no-p "No profiles found. Do you want to create one now?"))
                   ;; Create profile interactively
-		  (let ((profile-name (read-from-minibuffer "Profile name: ")))
-		    (sm--find-file-or-fill-template (sm--profile-filename profile-name)
+                  (let ((profile-name (read-from-minibuffer "Profile name: ")))
+                    (sm--find-file-or-fill-template (sm--profile-filename profile-name)
                                                     sm--template-profile `(("PROFILE-NAME" . ,profile-name)))))
 
-		 (sm-profile
+                 (sm-profile
                   ;; Load profile
-		  (sm--load-profile sm-profile))))
+                  (sm--load-profile sm-profile))))
 
-	  (t (sm-debug-msg "Loading modules %S." modules-to-activate)
+          (t (sm-debug-msg "Loading modules %S." modules-to-activate)
              (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
                (sm--activate-modules mm))))
     ;; KLUDGE: reactivate package-enable-at-startup after loading the
