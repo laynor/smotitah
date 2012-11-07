@@ -4,10 +4,9 @@
 ;; consider giving a hook for module loading
 
 (require 'cl)
+
 (setq package-enable-at-startup nil)
-(package-initialize t)
-(when (featurep 'el-get)
-  (el-get 'sync))
+
 ;;;; ------------------------------------- Variables -------------------------------------
 
 ;;; Profile loading related variables
@@ -91,7 +90,7 @@
 
 (defun sm-debug-msg (format-string &rest args)
   "Debug message utility."
-  (when sm-debug 
+  (when sm-debug
     (apply 'message (concat "smotitah: " format-string) args)))
 
 (defun sm-load-file-if-exists (filename)
@@ -213,7 +212,7 @@ startup, and is not meant to be called directly by the user."
   (unless sm-unmanaged-profile
     ;; Try to call the profile's init function
     (condition-case nil
-	(progn 
+	(progn
 	  (sm-debug-msg "Calling profile init fn")
 	  (funcall (sm--profile-init-fn profile-name)))
       (error (message "smotitah: no profile initialization function")))
@@ -396,7 +395,7 @@ AFTER the packages are loaded in a module file."
 
 (defun sm--package-install-with (package-name package-manager)
   "Installs PACKAGE-NAME with PACKAGE-MANAGER."
-  (unless sm--package-refreshed-p 
+  (unless sm--package-refreshed-p
     (setf sm--package-refreshed-p t)
     (package-refresh-contents))
   (funcall (cdr (assoc (sm--as-symbol package-manager) sm--package-installation-function-alist))
@@ -500,11 +499,20 @@ user emacs dir if not present"
   "Initializes the smotitah configuration framework. Call this in
 your init file."
   (interactive)
+
+  (when (bound-and-true-p sm-packages-to-preload)
+    (let ((pp (split-string sm-packages-to-preload)))
+      (mapc 'sm--package-initialize pp)))
+
+  (package-initialize t)
+  (when (featurep 'el-get)
+  (el-get 'sync))
+
   (let ((profile-list (sm-profile-list))
         (modules-to-activate (getenv "EMACS_MODULES")))
     (sm--create-base-module-if-needed)
     (sm--create-directories-if-needed)
-    (cond ((null modules-to-activate) 
+    (cond ((null modules-to-activate)
 	   (setq sm-profile (getenv "EMACS_PROFILE"))
            ;; Interactively prompt for profile if profiles are present
 	   (when (and (null sm-profile) profile-list)
@@ -514,7 +522,7 @@ your init file."
 		  (let ((profile-name (read-from-minibuffer "Profile name: ")))
 		    (sm--find-file-or-fill-template (sm--profile-filename profile-name)
                                                     sm--template-profile `(("PROFILE-NAME" . ,profile-name)))))
-		 
+
 		 (sm-profile
                   ;; Load profile
 		  (sm--load-profile sm-profile))))
