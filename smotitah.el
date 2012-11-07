@@ -521,7 +521,12 @@ your init file."
 
 	  (t (sm-debug-msg "Loading modules %S." modules-to-activate)
              (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
-               (sm--activate-modules mm))))))
+               (sm--activate-modules mm))))
+    ;; KLUDGE: reactivate package-enable-at-startup after loading the
+    ;; profile to let package correctly install packages with
+    ;; dependencies.
+    (setq package-enable-at-startup t)))
+
 
 
 
