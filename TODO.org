@@ -1,10 +1,13 @@
+* TODO compile smotitah files if needed (customizable?)
+* TODO module grouping as module dependencies (:require-modules)
+* TODO write tutorial
+* TODO statusbar indicator
+* TODO log buffer
 * TODO melpa recipe
 * TODO check who's loading eieio, maybe it's smotitah.
 * TODO make a plugin system for package managers
 * TODO integrate el-get
 * TODO package removal
+* TODO do not activate el-get packages unless required by modules
 * TODO integrate with enotify or similar library 
-* TODO do not activate packages unless required by modules
-  - [X] package.el: Look into package-activate and package-initialize
-  - [ ] el-get: /investigate/
-
+* DONE do not package-activate packages unless required by modules
