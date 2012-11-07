@@ -74,6 +74,24 @@
 
 ;;; Packages and package managers
 
+(defvar  sm-packages-to-preload nil
+  "This variable contains a list of packages that should be
+loaded BEFORE initializing the package managers. These packages
+MUST BE UNMANAGED packages.
+
+The only situation in which someone would need to use this is
+when the user wants to override some package used by smotitah or
+one of the supported package managers.
+
+We - the developers - only use this to preload our version of
+CEDET, because package.el indirectly uses CEDET (eieio) and we
+need to load it before package.el is loaded.
+
+DO NOT add managed packages to this list - it won't work. If you
+feel you need to preload a managed package, please file an issue
+on github (https://github.com/laynor/smotitah/issues) and we will
+try to work around it.")
+
 (defvar sm--supported-package-managers '("el-get" "package")
   "Supported package managers.")
 
@@ -500,7 +518,7 @@ user emacs dir if not present"
 your init file."
   (interactive)
 
-  (when (bound-and-true-p sm-packages-to-preload)
+  (when sm-packages-to-preload
     (let ((pp (split-string sm-packages-to-preload)))
       (mapc 'sm--package-initialize pp)))
 
