@@ -644,7 +644,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                       sm-package-file
                                       `(("PACKAGE-NAME" . ,package-name)
                                         ("PACKAGEMANAGER" . "\"package\"")
-					("UNMANAGEDP" . t))
+					("UNMANAGEDP" . "nil"))
                                       nil))))))
 
 ;;;; ------------------------------------ Compilation ------------------------------------
