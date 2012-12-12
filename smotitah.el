@@ -629,7 +629,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
   (interactive (list (ido-completing-read "Edit Package: " (sm-package-list))))
   (sm--find-file-or-fill-template (concat (sm--package-filename package-name) ".el")
                                   sm--template-package
-                                  `(("PACKAGE-NAME" . ,package-name))))
+                                  `(("PACKAGE-NAME" . ,package-name) ("PACKAGEMANAGER" . "nil") ("UNMANAGEDP" . "t"))))
 
 
 ;;; This advice hooks after package-install creating a clean package file
@@ -643,7 +643,8 @@ MODULE-NAME in the profile named PROFILE-NAME."
           (sm--fill-template-and-save sm--template-package
                                       sm-package-file
                                       `(("PACKAGE-NAME" . ,package-name)
-                                        ("PACKAGEMANAGER" . "\"package\""))
+                                        ("PACKAGEMANAGER" . "\"package\"")
+					("UNMANAGEDP" . t))
                                       nil))))))
 
 ;;;; ------------------------------------ Compilation ------------------------------------

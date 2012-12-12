@@ -1,7 +1,7 @@
 ;;;; Package PACKAGE-NAME
 (sm-package PACKAGE-NAME
             :package-manager PACKAGEMANAGER
-            :unmanaged-p nil)
+            :unmanaged-p UNMANAGEDP)
 
 ;;; TODO insert your package initialization code here
 
