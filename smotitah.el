@@ -1,5 +1,175 @@
-;;;; -*- lexical-binding: t -*-
-;; Super-modular
+;;; smotitah.el --- Modular configuration framework for emacs -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2013  Alessandro Piras
+
+;; Author: Alessandro Piras <laynor@gmail.com>
+;; Keywords: configuration
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; CONCEPTS
+;; ========
+;;
+;; This package is meant to modularize the emacs user configuration,
+;; and simplify the maintenance of multiple emacs configurations,
+;; reducing code duplication.
+;; It also offers support for automatic package installation for packages
+;; installed with package.el.
+;;
+;; The configuration is expressed as a hierarchical structure.
+;; The concepts provided by this library are:
+;; - profiles
+;; - modules
+;; - packages
+;;
+;; A profile is a given emacs configuration. For example, I, the
+;; author, have 3 profiles: job, home-windows, home-linux.
+;;
+;;
+;; A profile can require (and customize as needed in that profile) a
+;; set of modules.  Modules can be seen as activities, like C
+;; programming, elisp programming, or latex authoring.
+;; Modules can require a set of packages, and customize them as needed
+;; by the given module.
+;;
+;; For example, the package flymake could need different customizations for
+;; C and Python. These customizations can be written in the respective C and
+;; Python modules, while the common base configuration can be written in
+;; the flymake package configuration file.
+;;
+;; Packages in smotitah contain the customization for  what is commonly meant
+;; as a package in the emacs world.
+;; Packages can be either managed or unmanaged. A managed package is a package
+;; that has been installed with a package manager, while an unmanaged one is
+;; a package that is manually installed and updated by the user.
+;; At the moment, package.el is the only package manager supported by Smotitah,
+;; but there are plans on supporting el-get too.
+;;
+;;
+;; CONFIGURATION LAYOUT
+;; ====================
+;;
+;; Smotitah structures the emacs configuration as follows:
+;;
+;;   .emacs.d/
+;;      + profiles/
+;;      + modules/
+;;      + packages/
+;;
+;; A profile file has the following structure:
+;; ----------------------------------------------------------------------
+;; (sm-profile-pre (profile-name)
+;;   ;; code to be executed *before* loading the modules
+;;   )
+;;
+;; ;;; Modules to activate,
+;; (sm-require-modules "C" "Python")
+;;
+;; (sm-profile-post (job)
+;;  ;; Code to be executed *after* loading the modules
+;;   )
+;; ----------------------------------------------------------------------
+;;
+;; A module file has the following structure (example: C programming):
+;; ----------------------------------------------------------------------
+;; (sm-module C
+;;            :unmanaged-p nil
+;;            ;; Required packages list
+;;            :require-packages '(yasnippet auto-complete-clang c-eldoc))
+;;
+;; (sm-module-pre (C)
+;;   ;; Code to be executed *before* loading and configuring the packages
+;;   )
+;;
+;; (sm-module-post (C)
+;;   ;; Code to be executed *after* loading and configuring the packages
+;;   )
+;;
+;; (sm-provide :module C)
+;; ----------------------------------------------------------------------
+;;
+;; A package file has the following structure (example: yasnippet):
+;; ----------------------------------------------------------------------
+;; (sm-package yasnippet
+;;             :package-manager "package"
+;;             :unmanaged-p nil)
+;;
+;; ;; Put the package's base configuration here.
+;; (require 'yasnippet)
+;;
+;; (defun add-yasnippet-ac-sources ()
+;;   (add-to-list 'ac-sources 'ac-source-yasnippet))
+
+;; (sm-provide :package yasnippet)
+;; ----------------------------------------------------------------------
+;;
+;;
+;; USAGE
+;; =====
+;;
+;; Smotitah can be loaded from .emacs.d/init.el or your .emacs file.
+;; My init.el file looks like this:
+
+;;     (add-to-list 'load-path user-emacs-directory)
+;;
+;;     (setq package-archives '(("melpa" . "http://melpa.milkbox.net/packages/")))
+;;
+;;     (add-to-list 'load-path "path/to/smotitah")
+;;     (require 'smotitah)
+;;     (sm-initialize)
+
+;;
+;; Smotitah profile, module and package files stubs can be created
+;; using some facilities provided by the library:
+;;
+;; To create a profile file, M-x sm-edit-profile RET profile-name RET
+;; To create a module file, M-x sm-edit-module RET module-name RET
+;; To create a package file, M-x sm-edit-package RET package-name RET
+;;
+;; If a profile, module or package with the given name is already present,
+;; these functions will just open the file for editing.
+;;
+;; This will fill in the templates provided by the library.
+;;
+;; Please note that when installing a package with package-install or
+;; from the list-packages menu a smotitah package file is
+;; automatically created in the .emacs.d/packages directory.
+;;
+;; To load a given profile, set the EMACS_PROFILE environment variable
+;; to the profile name to load:
+;;
+;; Example: use profile-1
+;;    $ EMACS_PROFILE="profile-1" emacs
+;;
+;; or alternatively put this in your initialization file (init.el or .emacs):
+;;
+;; (setq sm-profile "profile-1")
+;;
+;; If no profile has been set in any of these two ways, smotitah will ask
+;; the user to choose which profile to load at startup.
+;;
+;; To load only a given set of modules, set the EMACS_MODULES environment
+;; variable to a comma-separated list of module names:
+;;
+;; Example: load C and python modules:
+;;    $ EMACS_MODULES="C, python" emacs
+;;
+;;
+;;; Code:
+
 ;; Probably a preloading of certain modules is necessary for some profiles
 ;; consider giving a hook for module loading
 
@@ -661,4 +831,6 @@ MODULE-NAME in the profile named PROFILE-NAME."
 (put 'sm-module-pre 'lisp-indent-function 1)
 (put 'sm-profile-post 'lisp-indent-function 1)
 (put 'sm-module-post 'lisp-indent-function 1)
+
 (provide 'smotitah)
+;;; smotitah.el ends here
