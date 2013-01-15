@@ -1,4 +1,4 @@
-;;; smotitah.el --- Modular configuration framework for emacs -*- lexical-binding: t; -*-
+;;; smotitah.el --- Modular configuration framework for Emacs -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013  Alessandro Piras
 
@@ -23,8 +23,8 @@
 ;; CONCEPTS
 ;; ========
 ;;
-;; This package is meant to modularize the emacs user configuration,
-;; and simplify the maintenance of multiple emacs configurations,
+;; This package is meant to modularize the Emacs user configuration,
+;; and simplify the maintenance of multiple Emacs configurations,
 ;; reducing code duplication.
 ;; It also offers support for automatic package installation for packages
 ;; installed with package.el.
@@ -35,13 +35,13 @@
 ;; - modules
 ;; - packages
 ;;
-;; A profile is a given emacs configuration. For example, I, the
+;; A profile is a given Emacs configuration. For example, I, the
 ;; author, have 3 profiles: job, home-windows, home-linux.
 ;;
 ;;
 ;; A profile can require (and customize as needed in that profile) a
 ;; set of modules.  Modules can be seen as activities, like C
-;; programming, elisp programming, or latex authoring.
+;; programming, elisp programming, or LaTeX authoring.
 ;; Modules can require a set of packages, and customize them as needed
 ;; by the given module.
 ;;
@@ -50,8 +50,7 @@
 ;; Python modules, while the common base configuration can be written in
 ;; the flymake package configuration file.
 ;;
-;; Packages in smotitah contain the customization for  what is commonly meant
-;; as a package in the emacs world.
+;; Smotitah packages are customization units for Emacs packages.
 ;; Packages can be either managed or unmanaged. A managed package is a package
 ;; that has been installed with a package manager, while an unmanaged one is
 ;; a package that is manually installed and updated by the user.
@@ -62,7 +61,7 @@
 ;; CONFIGURATION LAYOUT
 ;; ====================
 ;;
-;; Smotitah structures the emacs configuration as follows:
+;; Smotitah structures the Emacs configuration as follows:
 ;;
 ;;   .emacs.d/
 ;;      + profiles/
@@ -132,7 +131,7 @@
 ;;     (sm-initialize)
 
 ;;
-;; Smotitah profile, module and package files stubs can be created
+;; Smotitah profile, module and package files stubs can be created from template
 ;; using some facilities provided by the library:
 ;;
 ;; To create a profile file, M-x sm-edit-profile RET profile-name RET
@@ -141,8 +140,6 @@
 ;;
 ;; If a profile, module or package with the given name is already present,
 ;; these functions will just open the file for editing.
-;;
-;; This will fill in the templates provided by the library.
 ;;
 ;; Please note that when installing a package with package-install or
 ;; from the list-packages menu a smotitah package file is
