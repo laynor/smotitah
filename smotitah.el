@@ -120,7 +120,10 @@
 ;; =====
 ;;
 ;; Smotitah can be loaded from .emacs.d/init.el or your .emacs file.
-;; My init.el file looks like this:
+;; The procedure to activate Smotitah is different whether you manually downloaded
+;; its source code or you installed it with package.el.
+
+;; Put this in your .emacs or init.el file if you manually downloaded the sources:
 
 ;;     (add-to-list 'load-path user-emacs-directory)
 ;;
@@ -128,6 +131,16 @@
 ;;
 ;;     (add-to-list 'load-path "path/to/smotitah")
 ;;     (require 'smotitah)
+;;     (sm-initialize)
+
+;; Put this in your .emacs or init.el file if you installed smotitah with package.el.
+
+;;     (add-to-list 'load-path user-emacs-directory)
+;;     (setq package-archives '(("melpa" . "http://melpa.milkbox.net/packages/")))
+
+;;     (let ((package-enable-at-startup nil))
+;;       (package-initialize t)
+;;       (package-activate 'smotitah (package-desc-vers (cdr (assoc 'smotitah package-alist)))))
 ;;     (sm-initialize)
 
 ;;
