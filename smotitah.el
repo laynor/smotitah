@@ -185,7 +185,24 @@
 
 (require 'cl)
 
-(setq package-enable-at-startup nil)
+;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;; the function `command-line' seems to execute the user scripts,
+;;; and then it run `package-initialize' if `package-enable-at-startup'
+;;; is not nil. Since this happens _after_ loading the user scripts,
+;;; we cannot disable package-enable-at-startup before the package-initialize
+;;; and then re-enable it to make `package-install' work correctly.
+(require 'package)
+(setf (symbol-function 'smotitah-package-initialize) (symbol-function 'package-initialize))
+(defadvice package-compute-transaction (before smotitah-activate-installed-requirements (package-list requirements) activate)
+  (mapc (lambda (req)
+          (when (package-installed-p (car req))
+            (package-activate (car req) (cddr req))))
+        requirements))
+(defun package-initialize (&optional no-activate)
+  (smotitah-package-initialize t))
 
 ;;;; ------------------------------------- Variables -------------------------------------
 
@@ -727,14 +744,7 @@ your init file."
 
           (t (sm-debug-msg "Loading modules %S." modules-to-activate)
              (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
-               (sm--activate-modules mm))))
-    ;; KLUDGE: reactivate package-enable-at-startup after loading the
-    ;; profile to let package correctly install packages with
-    ;; dependencies.
-    (setq package-enable-at-startup t)))
-
-
-
+               (sm--activate-modules mm))))))
 
 ;;;; -------------------------------- Template Subsystem ---------------------------------
 
