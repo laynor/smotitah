@@ -190,7 +190,7 @@
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; the function `command-line' seems to execute the user scripts,
-;;; and then it run `package-initialize' if `package-enable-at-startup'
+;;; and then it runs `package-initialize' if `package-enable-at-startup'
 ;;; is not nil. Since this happens _after_ loading the user scripts,
 ;;; we cannot disable package-enable-at-startup before the package-initialize
 ;;; and then re-enable it to make `package-install' work correctly.
