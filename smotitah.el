@@ -681,6 +681,24 @@ is t, just load the package file found in .emacs.d/packages."
             (substring (file-name-sans-extension package-file) (length "sm-package-")))
           (directory-files sm--packages-dir nil "^sm-package-.*\\.el$")))
 
+(defun sm-package-activated-p (package-name)
+  "Checks if a package with this name is active.
+This can be useful to enable or disable some code conditionally.
+For example, I have a module 'evil', that integrates evil
+with various other packages, and is loaded at the end of my
+profile.
+This module consists of a series of
+  (when (sm-package-activated-p 'some-package)
+     ;; some-package configuration
+     )
+  ...
+  (when (sm-package-activated-p 'some-other-package)
+     ;; some-other-package configuration
+     )
+
+"
+  (let ((pn (sm--as-symbol package-name)))
+    (featurep (sm--package-feature package-name))))
 
 (defun sm--package-activate-package (package-name)
   "Activates a package with package.el"
