@@ -115,6 +115,33 @@
 ;; (sm-provide :package yasnippet)
 ;; ----------------------------------------------------------------------
 ;;
+;; EXECUTING CODE AFTER A PACKAGE OR MODULE HAS BEEN LOADED
+;; ========================================================
+;; Sometimes you can need to execute code after a given package or module
+;; has been loaded. For example, I need to integrate the package Evil
+;; (a vim-like editing package) with lots of other packages.
+;; Taking care of the loading order of packages is pretty annoying.
+
+;; The macro `sm-integrate-with' takes care of this.
+;; It works like `eval-after-load' (but with no need to quote the block of
+;; code to be executed, and with an implicit progn) if a string or symbol
+;; is given as its first argument, but it can also take a list of the form
+;;
+;;   (:package package-name)
+;; or
+;;   (:module module-name)
+;;
+;; A example from my evil package configuration:
+;;
+;;   (sm-integrate-with (:package direx)
+;;     (evil-global-set-key 'normal (kbd "C-d") 'popwin:direx))
+;;
+;;   (sm-integrate-with (:package ipa)
+;;     (evil-global-set-key 'normal (kbd "M-i M-i") 'ipa-toggle)
+;;     (evil-global-set-key 'normal (kbd "M-i i") 'ipa-insert)
+;;     (evil-global-set-key 'normal (kbd "M-i e") 'ipa-edit)
+;;     (evil-global-set-key 'normal (kbd "M-i m") 'ipa-move))
+;;
 ;;
 ;; USAGE
 ;; =====
