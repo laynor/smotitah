@@ -694,11 +694,31 @@ This module consists of a series of
   ...
   (when (sm-package-activated-p 'some-other-package)
      ;; some-other-package configuration
-     )
-
-"
+     )"
   (let ((pn (sm--as-symbol package-name)))
     (featurep (sm--package-feature package-name))))
+
+(defmacro* sm-integrate-with (thing &body body)
+  "Delimits a block of code meant to integrate the current
+  package with THING.  If THING is a string or a symbol, the
+  behavior is the same as `eval-after-load'.
+  If THING is a list of the form
+   (:module module-name) or
+   (:package package-name)
+  BODY will be executed after the module named module-name or
+  package named package-name has been loaded."
+  (declare (indent defun))
+  `(eval-after-load (etypecase ',thing
+                      ((or string symbol)
+                       ',thing)
+                      (list
+                       (pcase ',thing
+                         (`(:module ,module-name)
+                          (sm--module-feature module-name))
+                         (`(:package ,package-name)
+                          (sm--package-feature package-name))
+                         (_  (error "Wrong list format %s" ',thing)))))
+     '(progn ,@body)))
 
 (defun sm--package-activate-package (package-name)
   "Activates a package with package.el"
