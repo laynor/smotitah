@@ -115,6 +115,33 @@
 ;; (sm-provide :package yasnippet)
 ;; ----------------------------------------------------------------------
 ;;
+;; EXECUTING CODE AFTER A PACKAGE OR MODULE HAS BEEN LOADED
+;; ========================================================
+;; Sometimes you can need to execute code after a given package or module
+;; has been loaded. For example, I need to integrate the package Evil
+;; (a vim-like editing package) with lots of other packages.
+;; Taking care of the loading order of packages is pretty annoying.
+
+;; The macro `sm-integrate-with' takes care of this.
+;; It works like `eval-after-load' (but with no need to quote the block of
+;; code to be executed, and with an implicit progn) if a string or symbol
+;; is given as its first argument, but it can also take a list of the form
+;;
+;;   (:package package-name)
+;; or
+;;   (:module module-name)
+;;
+;; A example from my evil package configuration:
+;;
+;;   (sm-integrate-with (:package direx)
+;;     (evil-global-set-key 'normal (kbd "C-d") 'popwin:direx))
+;;
+;;   (sm-integrate-with (:package ipa)
+;;     (evil-global-set-key 'normal (kbd "M-i M-i") 'ipa-toggle)
+;;     (evil-global-set-key 'normal (kbd "M-i i") 'ipa-insert)
+;;     (evil-global-set-key 'normal (kbd "M-i e") 'ipa-edit)
+;;     (evil-global-set-key 'normal (kbd "M-i m") 'ipa-move))
+;;
 ;;
 ;; USAGE
 ;; =====
@@ -190,7 +217,7 @@
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; the function `command-line' seems to execute the user scripts,
-;;; and then it run `package-initialize' if `package-enable-at-startup'
+;;; and then it runs `package-initialize' if `package-enable-at-startup'
 ;;; is not nil. Since this happens _after_ loading the user scripts,
 ;;; we cannot disable package-enable-at-startup before the package-initialize
 ;;; and then re-enable it to make `package-install' work correctly.
@@ -298,11 +325,12 @@ try to work around it.")
 (defvar sm--package-refreshed-p nil
   "Whether or not the package list for package.el has been refreshed.")
 ;;; TODO integrate package managers in a generic way
-(defvar sm--package-installation-function-alist '((el-get . el-get-install) (package . package-install)))
+(defvar sm--package-installation-function-alist '((el-get . el-get-install) (package . sm--package-install)))
 (defvar sm--package-activation-function-alist '((package . sm--package-activate-package)))
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
+<<<<<<< variant A
 (defun sm--package-install (package-name)
   (let ((package-desc-or-name (if (fboundp 'package-desc-p)
 				  (cdr (assoc package-name package-archive-contents))
@@ -310,6 +338,16 @@ try to work around it.")
     (package-install package-desc-or-name)))
 
 
+>>>>>>> variant B
+(defun sm--package-install (package-name)
+  (let ((package-desc-or-name (if (fboundp 'package-desc-p)
+				  (cdr (assoc package-name package-archive-contents))
+				package-name)))
+    (package-install package-desc-or-name)))
+
+
+####### Ancestor
+======= end
 (defun sm-debug-msg (format-string &rest args)
   "Debug message utility."
   (when sm-debug
@@ -744,7 +782,7 @@ This module consists of a series of
 (defun sm--package-activate-package (package-name)
   "Activates a package with package.el"
   (let ((pn (sm--as-symbol package-name)))
-    (package-activate pn (package-desc-vers (cdr (assoc pn package-alist))))))
+    (package-activate pn (sm--package-get-version pn))))
 
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm--create-directories-if-needed ()
@@ -883,18 +921,21 @@ MODULE-NAME in the profile named PROFILE-NAME."
 
 ;;; This advice hooks after package-install creating a clean package file
 ;;; for all the packages that do not still have one.
-(defadvice package-install (after sm-offer-package-file-creation (name) activate)
-  (unless (file-exists-p (sm--package-filename (sm--as-string name)))
-    (dolist (p (sm--package-installed-packages))
-      (let* ((package-name (sm--as-string p))
-             (sm-package-file (concat (sm--package-filename package-name) ".el")))
-        (unless (file-exists-p sm-package-file)
-          (sm--fill-template-and-save sm--template-package
-                                      sm-package-file
-                                      `(("PACKAGE-NAME" . ,package-name)
-                                        ("PACKAGEMANAGER" . "\"package\"")
-					("UNMANAGEDP" . "nil"))
-                                      nil))))))
+(defadvice package-install (after sm-offer-package-file-creation (package-or-name) activate)
+  (let ((name (if (and (fboundp 'package-desc-p) (package-desc-p package-or-name))
+		  (package-desc-name package-or-name)
+		package-or-name)))
+    (unless (file-exists-p (sm--package-filename (sm--as-string name)))
+      (dolist (p (sm--package-installed-packages))
+	(let* ((package-name (sm--as-string p))
+	       (sm-package-file (concat (sm--package-filename package-name) ".el")))
+	  (unless (file-exists-p sm-package-file)
+	    (sm--fill-template-and-save sm--template-package
+					sm-package-file
+					`(("PACKAGE-NAME" . ,package-name)
+					  ("PACKAGEMANAGER" . "\"package\"")
+					  ("UNMANAGEDP" . "nil"))
+					nil)))))))
 
 ;;;; ------------------------------------ Compilation ------------------------------------
 
