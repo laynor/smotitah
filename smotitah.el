@@ -303,6 +303,13 @@ try to work around it.")
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
+(defun sm--package-install (package-name)
+  (let ((package-desc-or-name (if (fboundp 'package-desc-p)
+				  (cdr (assoc package-name package-archive-contents))
+				package-name)))
+    (package-install package-desc-or-name)))
+
+
 (defun sm-debug-msg (format-string &rest args)
   "Debug message utility."
   (when sm-debug
@@ -435,11 +442,14 @@ startup, and is not meant to be called directly by the user."
     (sm-debug-msg "Loading modules")
     (sm--activate-modules sm--active-modules)
     ;; Try to call the profile's post module loading function
-    (condition-case nil
-        (progn
-          (sm-debug-msg "Calling profile post fn")
-          (funcall (sm--profile-post-fn profile-name)))
-      (error (message "smotitah: no profile post-module-loading function"))))
+    (cond ((fboundp (sm--profile-post-fn profile-name))
+	   (condition-case err
+	       (progn
+		 (sm-debug-msg "Calling profile post fn")
+		 (funcall (sm--profile-post-fn profile-name)))
+	     (error (error "smotitah: error when calling profile %S post module loading function: %s"
+			   profile-name (error-message-string err)))))
+	  (t (message "smotitah: no profile post-module-loading function"))))
   (sm-debug-msg "Profile loading: end."))
 
 (defun sm-profile-list ()
@@ -681,6 +691,55 @@ is t, just load the package file found in .emacs.d/packages."
             (substring (file-name-sans-extension package-file) (length "sm-package-")))
           (directory-files sm--packages-dir nil "^sm-package-.*\\.el$")))
 
+(defun sm-package-activated-p (package-name)
+  "Checks if a package with this name is active.
+This can be useful to enable or disable some code conditionally.
+For example, I have a module 'evil', that integrates evil
+with various other packages, and is loaded at the end of my
+profile.
+This module consists of a series of
+  (when (sm-package-activated-p 'some-package)
+     ;; some-package configuration
+     )
+  ...
+  (when (sm-package-activated-p 'some-other-package)
+     ;; some-other-package configuration
+     )"
+  (let ((pn (sm--as-symbol package-name)))
+    (featurep (sm--package-feature package-name))))
+
+(defmacro* sm-integrate-with (thing &body body)
+  "Delimits a block of code meant to integrate the current
+  package with THING.  If THING is a string or a symbol, the
+  behavior is the same as `eval-after-load'.
+  If THING is a list of the form
+   (:module module-name) or
+   (:package package-name)
+  BODY will be executed after the module named module-name or
+  package named package-name has been loaded."
+  (declare (indent defun))
+  `(eval-after-load (etypecase ',thing
+                      ((or string symbol)
+                       ',thing)
+                      (list
+                       (pcase ',thing
+                         (`(:module ,module-name)
+                          (sm--module-feature module-name))
+                         (`(:package ,package-name)
+                          (sm--package-feature package-name))
+                         (_  (error "Wrong list format %s" ',thing)))))
+     '(progn ,@body)))
+
+(defun sm--package-get-version (package)
+  (let ((version (cdr (assoc package package-alist))))
+    (cond ((fboundp 'package-desc-vers)
+	   (package-desc-vers version))
+	  ((fboundp 'package-desc-version)
+           (when (and (not (package-desc-p version))
+                      (listp version))
+             (setq version (car version)))
+	   (package-desc-version version))
+	  (t nil))))
 
 (defun sm--package-activate-package (package-name)
   "Activates a package with package.el"
