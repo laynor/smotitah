@@ -330,7 +330,7 @@ try to work around it.")
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
-<<<<<<< variant A
+
 (defun sm--package-install (package-name)
   (let ((package-desc-or-name (if (fboundp 'package-desc-p)
 				  (cdr (assoc package-name package-archive-contents))
@@ -338,16 +338,6 @@ try to work around it.")
     (package-install package-desc-or-name)))
 
 
->>>>>>> variant B
-(defun sm--package-install (package-name)
-  (let ((package-desc-or-name (if (fboundp 'package-desc-p)
-				  (cdr (assoc package-name package-archive-contents))
-				package-name)))
-    (package-install package-desc-or-name)))
-
-
-####### Ancestor
-======= end
 (defun sm-debug-msg (format-string &rest args)
   "Debug message utility."
   (when sm-debug
