@@ -326,7 +326,9 @@ try to work around it.")
   "Whether or not the package list for package.el has been refreshed.")
 ;;; TODO integrate package managers in a generic way
 (defvar sm--package-installation-function-alist '((el-get . el-get-install) (package . sm--package-install)))
-(defvar sm--package-activation-function-alist '((package . sm--package-activate-package)))
+(defvar sm--package-activation-function-alist '((package . sm--package-activate-package) (el-get . sm--el-get-activate-package)))
+(defvar sm--package-list-function-alist '((package . sm--package-installed-packages)
+					  (el-get . sm--el-get-installed-packages)))
 
 ;;;; ------------------------------------- Utilities -------------------------------------
 
@@ -687,9 +689,10 @@ supported by smotitah - see `sm--supported-package-managers'."
 
 (defun sm--el-get-installed-packages ()
   "Internal. Returns the list of packages installed with el-get."
-  (if (fboundp 'el-get-package-is-installed)
-      (remove-if-not 'el-get-package-is-installed (el-get-read-all-recipe-names))
-    nil))
+  (when (featurep 'el-get)
+    (let ((p-s-alist (el-get-read-status-file)))
+      (append (el-get-filter-package-alist-with-status p-s-alist "required")
+	      (el-get-filter-package-alist-with-status p-s-alist "installed")))))
 
 (defun sm--all-installed-packages ()
   "Internal. Returns all the packages installed with the package managers
@@ -698,11 +701,21 @@ listed in SM--SUPPORTED-PACKAGE-MANAGERS"
                              (sm--el-get-installed-packages))
                      :test 'equal))
 
+(defun sm--package-package-installed-p (package-name)
+  (member (sm--as-symbol package-name) 
+	  (sm--package-installed-packages)))
+
+(defun sm--el-get-package-installed-p (package-name)
+  (let ((p-s-alist (el-get-read-status-file)))
+    (member (sm--as-string package-name)
+	    (el-get-filter-package-alist-with-status p-s-alist "installed"))))
+
 (defun sm--package-installed-p (package-name)
   "Internal. Returns t if the package named PACKAGE-NAME is installed with
 any of the package managers listed in
 SM--SUPPORTED-PACKAGE-MANAGERS, nil otherwise."
-  (member (sm--as-symbol package-name) (sm--all-installed-packages)))
+  (or (sm--package-package-installed-p package-name)
+      (sm--el-get-package-installed-p package-name)))
 
 (defun* sm--package-initialize (package-name)
   "Internal. Initializes the package named PACKAGE-NAME. If MODULE-NAME is provided,
@@ -768,6 +781,9 @@ This module consists of a series of
              (setq version (car version)))
 	   (package-desc-version version))
 	  (t nil))))
+
+(defun sm--el-get-activate-package (package-name)
+  nil)
 
 (defun sm--package-activate-package (package-name)
   "Activates a package with package.el"
@@ -909,23 +925,29 @@ MODULE-NAME in the profile named PROFILE-NAME."
                                   `(("PACKAGE-NAME" . ,package-name) ("PACKAGEMANAGER" . "nil") ("UNMANAGEDP" . "t"))))
 
 
-;;; This advice hooks after package-install creating a clean package file
+;;; This advices hooks after package-install creating a clean package file
 ;;; for all the packages that do not still have one.
+
+(defun sm--ensure-package-files-exist (package-manager)
+  (let ((package-manager-installed-packages
+	 (funcall (cdr (assoc package-manager
+			      sm--package-list-function-alist )))))
+    (dolist (p package-manager-installed-packages)
+      (let* ((package-name (sm--as-string p))
+	     (sm-package-file (concat (sm--package-filename package-name) ".el")))
+	(unless (file-exists-p sm-package-file)
+	  (sm--fill-template-and-save sm--template-package
+				      sm-package-file
+				      `(("PACKAGE-NAME" . ,package-name)
+					("PACKAGEMANAGER" . ,(format "%S" (sm--as-string package-manager)))
+					("UNMANAGEDP" . "nil"))
+				      nil))))))
+
 (defadvice package-install (after sm-offer-package-file-creation (package-or-name) activate)
-  (let ((name (if (and (fboundp 'package-desc-p) (package-desc-p package-or-name))
-		  (package-desc-name package-or-name)
-		package-or-name)))
-    (unless (file-exists-p (sm--package-filename (sm--as-string name)))
-      (dolist (p (sm--package-installed-packages))
-	(let* ((package-name (sm--as-string p))
-	       (sm-package-file (concat (sm--package-filename package-name) ".el")))
-	  (unless (file-exists-p sm-package-file)
-	    (sm--fill-template-and-save sm--template-package
-					sm-package-file
-					`(("PACKAGE-NAME" . ,package-name)
-					  ("PACKAGEMANAGER" . "\"package\"")
-					  ("UNMANAGEDP" . "nil"))
-					nil)))))))
+  (sm--ensure-package-files-exist 'package))
+
+(defadvice el-get-do-install (after sm-el-get-offer-package-file-creation (package-name) activate)
+  (sm--ensure-package-files-exist 'el-get))
 
 ;;;; ------------------------------------ Compilation ------------------------------------
 
