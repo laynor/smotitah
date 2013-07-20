@@ -334,10 +334,7 @@ try to work around it.")
 
 
 (defun sm--package-install (package-name)
-  (let ((package-desc-or-name (if (fboundp 'package-desc-p)
-				  (cdr (assoc package-name package-archive-contents))
-				package-name)))
-    (package-install package-desc-or-name)))
+  (package-install package-name))
 
 
 (defun sm-debug-msg (format-string &rest args)
