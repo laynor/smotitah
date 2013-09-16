@@ -212,7 +212,7 @@
 
 (require 'cl)
 
-;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
 ;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
@@ -231,6 +231,7 @@
 (defun package-initialize (&optional no-activate)
   (smotitah-package-initialize t))
 
+
 ;;;; ------------------------------------- Variables -------------------------------------
 
 ;;; Profile loading related variables
@@ -330,6 +331,7 @@ try to work around it.")
 (defvar sm--package-list-function-alist '((package . sm--package-installed-packages)
 					  (el-get . sm--el-get-installed-packages)))
 
+
 ;;;; ------------------------------------- Utilities -------------------------------------
 
 
@@ -380,7 +382,7 @@ symbol."
   (not (eq (and x t)
            (and y t))))
 
-
+
 ;;;; --------------------------------- Name -> Filename ----------------------------------
 
 (defun sm--profile-filename (profile-name)
@@ -406,6 +408,7 @@ after loading the module."
                                                     (sm--as-string module-name)
                                                     (sm--as-string stage))))
 
+
 ;;;; ------------------------------- Features for require --------------------------------
 
 (defun sm--module-feature (module-name)
@@ -438,7 +441,7 @@ package named PACKAGE-NAME."
         (:integration-pre (sm--profile-module-integration-feature name module-name :pre))
         (:integration-post (sm--profile-module-integration-feature name module-name :post)))))
 
-
+
 ;;;; -------------------------------------- Profile --------------------------------------
 
 (defun sm--profile-init-fn (profile-name)
@@ -505,6 +508,7 @@ startup, and is not meant to be called directly by the user."
   `(defun ,(sm--profile-post-fn profile-name) ()
      ,@body))
 
+
 ;;;; -------------------------------------- Modules --------------------------------------
 
 (defmacro* sm-module (module-name &key unmanaged-p require-packages)
@@ -639,6 +643,7 @@ AFTER the packages are loaded in a module file."
   `(defun ,(sm--module-post-fn module-name) ()
      ,@body))
 
+
 ;;;; ------------------------------------- Packages --------------------------------------
 
 (defmacro sm--get-package (name)
@@ -788,6 +793,7 @@ This module consists of a series of
   (let ((pn (sm--as-symbol package-name)))
     (package-activate pn (sm--package-get-version pn))))
 
+
 ;;;; ---------------------------------- Initialization -----------------------------------
 (defun sm--create-directories-if-needed ()
   "Internal. Creates the profiles, modules and packages directories in your
@@ -847,6 +853,7 @@ your init file."
              (let ((mm (split-string modules-to-activate "\\s-*,\\s-*" t)))
                (sm--activate-modules mm))))))
 
+
 ;;;; -------------------------------- Template Subsystem ---------------------------------
 
 (defun* sm--fill-template-and-save (template-filename destination-file substitution-alist &optional (visit t))
@@ -879,6 +886,7 @@ FILENAME. Visits FILENAME."
     (sm--fill-template-and-save template-filename filename substitutions)))
 
 
+
 ;;;; ----------------------------------- User commands -----------------------------------
 
 (defun sm-integrate-module (profile-name module-name)
@@ -947,6 +955,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
 (defadvice el-get-do-install (after sm-el-get-offer-package-file-creation (package-name) activate)
   (sm--ensure-package-files-exist 'el-get))
 
+
 ;;;; ------------------------------------ Compilation ------------------------------------
 
 (defun sm-recompile-all ()
@@ -956,6 +965,7 @@ MODULE-NAME in the profile named PROFILE-NAME."
   (byte-recompile-directory sm--packages-dir 0 t)
   (byte-recompile-file (concat sm--directory "smotitah.el") t 0))
 
+
 ;;;; ---------------------- Indentation kludges for macros ------------------------
 (put 'sm-profile-pre 'lisp-indent-function 1)
 (put 'sm-module-pre 'lisp-indent-function 1)
