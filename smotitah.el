@@ -829,7 +829,7 @@ your init file."
     (sm--create-base-module-if-needed)
     (sm--create-directories-if-needed)
     (cond ((null modules-to-activate)
-           (setq sm-profile (getenv "EMACS_PROFILE"))
+           (setq sm-profile (or sm-profile (getenv "EMACS_PROFILE")))
            ;; Interactively prompt for profile if profiles are present
            (when (and (null sm-profile) profile-list)
              (setq sm-profile (sm--select-profile-interactively)))
