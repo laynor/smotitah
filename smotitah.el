@@ -221,7 +221,7 @@
 ;;; is not nil. Since this happens _after_ loading the user scripts,
 ;;; we cannot disable package-enable-at-startup before the package-initialize
 ;;; and then re-enable it to make `package-install' work correctly.
-(require 'package)
+(require 'package)			;
 (setf (symbol-function 'smotitah-package-initialize) (symbol-function 'package-initialize))
 (defadvice package-compute-transaction (before smotitah-activate-installed-requirements (package-list requirements) activate)
   (mapc (lambda (req)
@@ -334,7 +334,7 @@ try to work around it.")
 
 
 (defun sm--package-install (package-name)
-  (package-install package-name))
+  (package-install (sm--as-symbol package-name)))
 
 
 (defun sm-debug-msg (format-string &rest args)
@@ -699,13 +699,14 @@ listed in SM--SUPPORTED-PACKAGE-MANAGERS"
                      :test 'equal))
 
 (defun sm--package-package-installed-p (package-name)
-  (member (sm--as-symbol package-name) 
+  (member (sm--as-symbol package-name)
 	  (sm--package-installed-packages)))
 
 (defun sm--el-get-package-installed-p (package-name)
-  (let ((p-s-alist (el-get-read-status-file)))
-    (member (sm--as-string package-name)
-	    (el-get-filter-package-alist-with-status p-s-alist "installed"))))
+  (when (featurep 'el-get)
+    (let ((p-s-alist (el-get-read-status-file)))
+      (member (sm--as-string package-name)
+	      (el-get-filter-package-alist-with-status p-s-alist "installed")))))
 
 (defun sm--package-installed-p (package-name)
   "Internal. Returns t if the package named PACKAGE-NAME is installed with
