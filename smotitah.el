@@ -231,6 +231,13 @@
 (defun package-initialize (&optional no-activate)
   (smotitah-package-initialize t))
 
+(defgroup smotitah nil
+  "Settings for the modular emacs configuration framework."
+  :version "24.3"
+  :group 'Environment
+  :prefix "sm-"
+  :prefix "sm--")
+
 
 ;;;; ------------------------------------- Variables -------------------------------------
 
