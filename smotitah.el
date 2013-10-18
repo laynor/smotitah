@@ -690,7 +690,7 @@ supported by smotitah - see `sm--supported-package-managers'."
     `(progn
        (assert (sm--xor ,package-manager ,unmanaged-p) nil
                "Error in package '%s' declaration: one (and only one)
-              of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
+              of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" ,name)
        (let ((,unmanaged-p-1 (or ,unmanaged-p (equal (sm--as-string ,package-manager) "builtin"))))
          (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p-1))
          (unless (or ,unmanaged-p-1 (sm--package-installed-p ,(sm--as-string name)))
