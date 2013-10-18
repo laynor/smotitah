@@ -254,8 +254,8 @@
 
 (defvar sm--profile-functions-format "sm-profile-%s-%s"
   "Format string used to calculate the names of the init and post functions for a profile.
-  - init function: sm-profile-<profile-name>-init
-  - post function: sm-profile-<profile-name>-post")
+- init function: sm-profile-<profile-name>-init
+- post function: sm-profile-<profile-name>-post")
 
 
 ;;; Module related variables
@@ -266,10 +266,10 @@
 (defvar sm--module-table (make-hash-table :test 'equal)
   "Table of loaded modules. Each module is represented as a property list.")
 
-(defvar  sm--module-functions-format "sm-module-%s-%s"
+(defvar sm--module-functions-format "sm-module-%s-%s"
   "Format string used to calculate the names of the init and post functions for a module.
-  - init function: sm-module-<module name>-pre
-  - post function: sm-module-<module name>-post")
+- init function: sm-module-<module name>-pre
+- post function: sm-module-<module name>-post")
 
 
 ;;; Directories
@@ -317,7 +317,7 @@ modules & packages."
 
 ;;; Packages and package managers
 
-(defvar  sm-packages-to-preload nil
+(defvar sm-packages-to-preload nil
   "This variable contains a list of packages that should be
 loaded BEFORE initializing the package managers. These packages
 MUST BE UNMANAGED packages.
