@@ -295,6 +295,8 @@ and `packages' directories."
   "Smotitah installation directory.")
 
 (defcustom sm--template-dir (concat sm--directory "templates/")
+  "The directory that houses the template files for profiles,
+modules & packages."
   :type 'directory)
 
 
