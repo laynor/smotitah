@@ -267,19 +267,28 @@
 
 ;;; Directories
 
-(defvar sm--profiles-dir (concat user-emacs-directory "profiles/")
-  "Profiles directory.")
+(defcustom sm-base-directory user-emacs-directory
+  "The directory in which smotitah will place its `profiles', `modules',
+and `packages' directories."
+  :type 'directory)
 
-(defvar sm--modules-dir (concat user-emacs-directory "modules/")
-  "Modules directory.")
+(defcustom sm--profiles-dir (concat sm-base-directory "profiles/")
+  "Profiles directory."
+  :type 'directory)
 
-(defvar sm--packages-dir (concat user-emacs-directory "packages/")
-  "Packages directory")
+(defcustom sm--modules-dir (concat sm-base-directory "modules/")
+  "Modules directory."
+  :type 'directory)
+
+(defcustom sm--packages-dir (concat sm-base-directory "packages/")
+  "Packages directory"
+  :type 'directory)
 
 (defvar sm--directory (file-name-directory load-file-name)
   "Smotitah installation directory.")
 
-(defvar sm--template-dir (concat sm--directory "templates/"))
+(defcustom sm--template-dir (concat sm--directory "templates/")
+  :type 'directory)
 
 
 
