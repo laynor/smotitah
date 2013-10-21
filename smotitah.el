@@ -231,6 +231,13 @@
 (defun package-initialize (&optional no-activate)
   (smotitah-package-initialize t))
 
+(defgroup smotitah nil
+  "Settings for the modular emacs configuration framework."
+  :version "24.3"
+  :group 'Environment
+  :prefix "sm-"
+  :prefix "sm--")
+
 
 ;;;; ------------------------------------- Variables -------------------------------------
 
@@ -247,8 +254,8 @@
 
 (defvar sm--profile-functions-format "sm-profile-%s-%s"
   "Format string used to calculate the names of the init and post functions for a profile.
-  - init function: sm-profile-<profile-name>-init
-  - post function: sm-profile-<profile-name>-post")
+- init function: sm-profile-<profile-name>-init
+- post function: sm-profile-<profile-name>-post")
 
 
 ;;; Module related variables
@@ -259,27 +266,38 @@
 (defvar sm--module-table (make-hash-table :test 'equal)
   "Table of loaded modules. Each module is represented as a property list.")
 
-(defvar  sm--module-functions-format "sm-module-%s-%s"
+(defvar sm--module-functions-format "sm-module-%s-%s"
   "Format string used to calculate the names of the init and post functions for a module.
-  - init function: sm-module-<module name>-pre
-  - post function: sm-module-<module name>-post")
+- init function: sm-module-<module name>-pre
+- post function: sm-module-<module name>-post")
 
 
 ;;; Directories
 
-(defvar sm--profiles-dir (concat user-emacs-directory "profiles/")
-  "Profiles directory.")
+(defcustom sm-base-directory user-emacs-directory
+  "The directory in which smotitah will place its `profiles', `modules',
+and `packages' directories."
+  :type 'directory)
 
-(defvar sm--modules-dir (concat user-emacs-directory "modules/")
-  "Modules directory.")
+(defcustom sm--profiles-dir (concat sm-base-directory "profiles/")
+  "Profiles directory."
+  :type 'directory)
 
-(defvar sm--packages-dir (concat user-emacs-directory "packages/")
-  "Packages directory")
+(defcustom sm--modules-dir (concat sm-base-directory "modules/")
+  "Modules directory."
+  :type 'directory)
+
+(defcustom sm--packages-dir (concat sm-base-directory "packages/")
+  "Packages directory"
+  :type 'directory)
 
 (defvar sm--directory (file-name-directory load-file-name)
   "Smotitah installation directory.")
 
-(defvar sm--template-dir (concat sm--directory "templates/"))
+(defcustom sm--template-dir (concat sm--directory "templates/")
+  "The directory that houses the template files for profiles,
+modules & packages."
+  :type 'directory)
 
 
 
@@ -299,7 +317,7 @@
 
 ;;; Packages and package managers
 
-(defvar  sm-packages-to-preload nil
+(defvar sm-packages-to-preload nil
   "This variable contains a list of packages that should be
 loaded BEFORE initializing the package managers. These packages
 MUST BE UNMANAGED packages.
@@ -672,7 +690,7 @@ supported by smotitah - see `sm--supported-package-managers'."
     `(progn
        (assert (sm--xor ,package-manager ,unmanaged-p) nil
                "Error in package '%s' declaration: one (and only one)
-              of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" name)
+              of PACKAGE-MANAGER and UNMANAGED-P must be non-nil" ,name)
        (let ((,unmanaged-p-1 (or ,unmanaged-p (equal (sm--as-string ,package-manager) "builtin"))))
          (setf (sm--get-package ,(sm--as-string name)) (list :package ,(sm--as-string name) :package-manager ,package-manager :unmanaged-p ,unmanaged-p-1))
          (unless (or ,unmanaged-p-1 (sm--package-installed-p ,(sm--as-string name)))
