@@ -213,15 +213,15 @@
 (require 'cl)
 
 
-;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
-;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
-;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
-;;; KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
-;;; the function `command-line' seems to execute the user scripts,
-;;; and then it runs `package-initialize' if `package-enable-at-startup'
-;;; is not nil. Since this happens _after_ loading the user scripts,
-;;; we cannot disable package-enable-at-startup before the package-initialize
-;;; and then re-enable it to make `package-install' work correctly.
+;;;  KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;;  KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;;  KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;;  KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE KLUDGE
+;;;  the function `command-line' seems to execute the user scripts,
+;;;  and then it runs `package-initialize' if `package-enable-at-startup'
+;;;  is not nil. Since this happens _after_ loading the user scripts,
+;;;  we cannot disable package-enable-at-startup before the package-initialize
+;;;  and then re-enable it to make `package-install' work correctly.
 (require 'package)			;
 (setf (symbol-function 'smotitah-package-initialize) (symbol-function 'package-initialize))
 (defadvice package-compute-transaction (before smotitah-activate-installed-requirements (package-list requirements) activate)
@@ -233,7 +233,7 @@
   (smotitah-package-initialize t))
 
 
-;;;; ------------------------------------- Variables -------------------------------------
+;;;;   ------------------------------------- Variables -------------------------------------
 
 ;;; Profile loading related variables
 
