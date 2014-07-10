@@ -224,7 +224,7 @@
 ;;;  and then re-enable it to make `package-install' work correctly.
 (require 'package)			;
 (setf (symbol-function 'smotitah-package-initialize) (symbol-function 'package-initialize))
-(defadvice package-compute-transaction (before smotitah-activate-installed-requirements (package-list requirements) activate)
+(defadvice package-compute-transaction (before smotitah-activate-installed-requirements (package-list requirements &optional seen) activate)
   (mapc (lambda (req)
           (when (package-installed-p (car req))
             (package-activate (car req) (cddr req))))
