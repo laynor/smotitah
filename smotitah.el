@@ -969,8 +969,10 @@ MODULE-NAME in the profile named PROFILE-NAME."
 					("UNMANAGEDP" . "nil"))
 				      nil))))))
 
-(defadvice package-install (after sm-offer-package-file-creation (package-or-name) activate)
+(defun sm-offer-package-file-creation (&rest args)
   (sm--ensure-package-files-exist 'package))
+
+(advice-add 'package-install :after #'sm-offer-package-file-creation)
 
 (defadvice el-get-do-install (after sm-el-get-offer-package-file-creation (package-name) activate)
   (sm--ensure-package-files-exist 'el-get))
